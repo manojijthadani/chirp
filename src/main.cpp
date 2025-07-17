@@ -66,6 +66,21 @@ void ServiceMsgHandlers::TestCharTypesHandler(char a) {
                                      << a << std::endl;
 }
 
+void ServiceMsgHandlers::TestVectorTypesHandler(std::vector<int> a) {
+
+    NiceLogger::instance("Service2") << "****In TestVectorTypesHandler callback vector: ";
+    for (const auto& val : a) {
+        NiceLogger::instance("Service2") << val << " ";
+    }
+    NiceLogger::instance("Service2") << std::endl;
+}
+
+void ServiceMsgHandlers::TestPointerTypesHandler(int* a) {
+
+    NiceLogger::instance("Service1") << "****In TestPointerTypesHandler callback address: " 
+                                     << " value: " << *a << std::endl;
+}
+
 int main() {
 
     ServiceMsgHandlers mh;
@@ -74,11 +89,13 @@ int main() {
     svc1.registerMsgHandler("TestIntegerTypes", mh.TestIntegerTypesHandler);
     svc1.registerMsgHandler("TestStringTypes", mh.TestStringTypesHandler);
     svc1.registerMsgHandler("TestCharTypes", mh.TestCharTypesHandler);
+    svc1.registerMsgHandler("TestPointerTypes", mh.TestPointerTypesHandler);
     svc1.start();
 
     NiceService svc2("Service2");
     svc2.registerMsgHandler("TestFloatingTypes", mh.TestFloatingTypesHandler);
     svc2.registerMsgHandler("TestBoolTypes", mh.TestBoolTypesHandler);
+    svc2.registerMsgHandler("TestVectorTypes", mh.TestVectorTypesHandler);
     svc2.start();
 
     svc1.postMsg("TestIntegerTypes", 2, (short)100, (long)1000, (long long)10000);
@@ -87,7 +104,13 @@ int main() {
     svc2.postMsg("TestBoolTypes", true);
     svc1.postMsg("TestCharTypes", 'a');
     
-    std::this_thread::sleep_for(std::chrono::seconds(1));
+    int a = 10;
+    svc1.postMsg("TestPointerTypes", &a);
+
+    std::vector<int> vec = {1, 2, 3, 4, 5};
+    svc2.postMsg("TestVectorTypes", vec);
+    
+    std::this_thread::sleep_for(std::chrono::seconds(3));
 
     svc1.shutdown(ShutdownType::NORMAL);
     svc2.shutdown(ShutdownType::NORMAL);
