@@ -1,6 +1,5 @@
 #include <iostream>
 #include <cassert>
-#include "nice_threads.h"
 
 int main() {
     //assert(get_hello() == "Hello, World!");
