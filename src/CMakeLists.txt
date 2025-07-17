@@ -1,11 +1,9 @@
 add_library(nice STATIC nice_threads.cpp nice_logger.cpp)
+target_include_directories(nice PRIVATE ${CMAKE_SOURCE_DIR}/inc)
 
 add_executable(main main.cpp
-        message_loop.h
-        message.h
         message_loop.cpp
         message.cpp
-        nice_service.h
-        nice_service.cpp
-        nice_logger.h)
+        nice_service.cpp)
 target_link_libraries(main PRIVATE nice)
+target_include_directories(main PRIVATE ${CMAKE_SOURCE_DIR}/inc)
