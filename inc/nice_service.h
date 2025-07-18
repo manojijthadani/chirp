@@ -6,11 +6,8 @@
 #include <string>
 #include <iostream>
 #include <sstream>
+#include "nice_service_types.h"
 
-enum class ShutdownType {
-    NORMAL,
-    FORCE
-};
 
 class NiceServiceImpl;
 
