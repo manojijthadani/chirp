@@ -12,7 +12,7 @@ enum class ShutdownType {
     FORCE
 };
 
-class NiceThread;
+class NiceServiceImpl;
 
 class NiceService {
 public:
@@ -73,10 +73,7 @@ private:
             std::cerr << "Argument type mismatch: " << e.what() << "\n";
         }
     }
-
-    void waitUntilServiceStopped();
     void enqueMsg(std::string& msgName, std::vector<std::any>& args);
     void getCbMap(std::map<std::string, std::function<void(std::vector<std::any>)>>*& funcMap);
-    std::string _service_name;
-    NiceThread* _nthread;
+    NiceServiceImpl* _impl;
 }; 
