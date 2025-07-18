@@ -7,8 +7,6 @@
 #include <deque>
 
 #include "nice_service.h"
-#include "nice_logger.h"
-
 
 class ServiceMsgHandlers {
     public:
@@ -33,7 +31,7 @@ class ServiceMsgHandlers {
 
 void ServiceMsgHandlers::TestIntegerTypesHandler(int a, short b, long c, long long d) {
 
-    NiceLogger::instance("Service1") << "****In TestIntegerTypesHandler callback " 
+    std::cout << "****In TestIntegerTypesHandler callback " 
                                      << a << " " 
                                      << b << " " 
                                      << c << " " 
@@ -42,7 +40,7 @@ void ServiceMsgHandlers::TestIntegerTypesHandler(int a, short b, long c, long lo
 
 void ServiceMsgHandlers::TestFloatingTypesHandler(float a, double b, long double c) {
 
-    NiceLogger::instance("Service2") << "****In TestFloatingTypesHandler callback " 
+    std::cout << "****In TestFloatingTypesHandler callback " 
                                      << a  << " " 
                                      << b << " " 
                                      << c << std::endl;
@@ -50,34 +48,34 @@ void ServiceMsgHandlers::TestFloatingTypesHandler(float a, double b, long double
 
 void ServiceMsgHandlers::TestStringTypesHandler(std::string a) {
 
-    NiceLogger::instance("Service1") << "****In TestStringTypesHandler callback " 
+    std::cout << "****In TestStringTypesHandler callback " 
                                      << a << std::endl;
 }
 
 void ServiceMsgHandlers::TestBoolTypesHandler(bool a) {
 
-    NiceLogger::instance("Service1") << "****In TestBoolTypesHandler callback " 
+    std::cout << "****In TestBoolTypesHandler callback " 
                                      << std::boolalpha << a << std::endl;
 }
 
 void ServiceMsgHandlers::TestCharTypesHandler(char a) {
 
-    NiceLogger::instance("Service1") << "****In TestCharTypesHandler callback " 
+    std::cout << "****In TestCharTypesHandler callback " 
                                      << a << std::endl;
 }
 
 void ServiceMsgHandlers::TestVectorTypesHandler(std::vector<int> a) {
 
-    NiceLogger::instance("Service2") << "****In TestVectorTypesHandler callback vector: ";
+    std::cout << "****In TestVectorTypesHandler callback vector: ";
     for (const auto& val : a) {
-        NiceLogger::instance("Service2") << val << " ";
+        std::cout << val << " ";
     }
-    NiceLogger::instance("Service2") << std::endl;
+    std::cout << std::endl;
 }
 
 void ServiceMsgHandlers::TestPointerTypesHandler(int* a) {
 
-    NiceLogger::instance("Service1") << "****In TestPointerTypesHandler callback address: " 
+    std::cout << "****In TestPointerTypesHandler callback address: " 
                                      << " value: " << *a << std::endl;
 }
 

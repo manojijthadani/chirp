@@ -1,4 +1,4 @@
 add_library(nice STATIC nice_threads.cpp nice_logger.cpp message_loop.cpp message.cpp nice_service.cpp)
-target_include_directories(nice PRIVATE ${CMAKE_SOURCE_DIR}/inc)
+target_include_directories(nice PUBLIC ${CMAKE_SOURCE_DIR}/inc PRIVATE ${CMAKE_SOURCE_DIR}/src)
 
 
