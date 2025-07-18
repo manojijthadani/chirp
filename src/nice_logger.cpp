@@ -2,11 +2,11 @@
 #include <chrono>
 #include <iomanip>
 #include <ctime>
+#include <cstdlib>
 
 #include "nice_logger.h"
 
 NiceLogger& NiceLogger::instance(const std::string& serviceName) {
-
     static NiceLogger loggerInstance;
     if (!serviceName.empty()) {
         loggerInstance.setServiceName(serviceName);
@@ -15,44 +15,38 @@ NiceLogger& NiceLogger::instance(const std::string& serviceName) {
 }
 
 NiceLogger::NiceLogger(const std::string& filename) {
-    
-    // Open in write-only mode, truncating the file each time
-    _ofs.open(filename, std::ios::out | std::ios::trunc);
-    if (!_ofs.is_open()) {
-
-        std::cerr << "Failed to open log file: " << filename << std::endl;
+    const char* debug_env = std::getenv("NICE_SERVICES_DEBUG");
+    if (debug_env && std::string(debug_env) == "1") {
+        // Open in write-only mode, truncating the file each time
+        _ofs.open(filename, std::ios::out | std::ios::trunc);
+        if (!_ofs.is_open()) {
+            std::cerr << "Failed to open log file: " << filename << std::endl;
+        }
     }
     _serviceName = "";
 }
 
 NiceLogger::~NiceLogger() {
-
     flush();
     if (_ofs.is_open()) {
-
         _ofs.close();
     }
 }
 
 void NiceLogger::setServiceName(const std::string& serviceName) {
-    
     _serviceName = serviceName;
 }
 
 NiceLogger& NiceLogger::operator<<(std::ostream& (*manip)(std::ostream&)) {
-
     std::lock_guard<std::mutex> lock(_mtx);
-    if (manip == static_cast<std::ostream& (*)(std::ostream&)>(std::endl)) {
-
+    if (_ofs.is_open() && manip == static_cast<std::ostream& (*)(std::ostream&)>(std::endl)) {
         flush();
     }
     return *this;
 }
 
 void NiceLogger::flush() {
-
     if (_ofs.is_open()) {
-
         // Get current time with milliseconds
         auto now = std::chrono::system_clock::now();
         auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;

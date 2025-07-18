@@ -3,6 +3,7 @@
 #include <sstream>
 #include <string>
 #include <mutex>
+#include <cstdlib>
 
 class NiceLogger {
 public:
@@ -11,7 +12,9 @@ public:
     template<typename T>
     NiceLogger& operator<<(const T& value) {
         std::lock_guard<std::mutex> lock(_mtx);
-        _buffer << value;
+        if (_ofs.is_open()) {
+            _buffer << value;
+        }
         return *this;
     }
 
