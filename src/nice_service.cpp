@@ -1,5 +1,8 @@
-#include "nice_service.h"
 #include <thread>
+
+#include "nice_service.h"
+#include "nice_threads.h"
+#include "nice_logger.h"
 
 NiceService::NiceService(const std::string& service_name) {
     _service_name = service_name;
@@ -27,4 +30,12 @@ std::string NiceService::getServiceName() {
     return _service_name;
 }
 
+void NiceService::enqueMsg(std::string& msgName, std::vector<std::any>& args) {
+    Message* msg = new Message(msgName, args);
+    _nthread->enqueueMsg(msg);
+}
+
+void NiceService::getCbMap(std::map<std::string, std::function<void(std::vector<std::any>)>>*& funcMap) {
+    _nthread->getCbMap(funcMap);
+}
 

@@ -6,14 +6,13 @@
 #include <string>
 #include <iostream>
 #include <sstream>
-#include "nice_logger.h"
-#include "nice_threads.h"
-#include "message.h"
 
 enum class ShutdownType {
     NORMAL,
     FORCE
 };
+
+class NiceThread;
 
 class NiceService {
 public:
@@ -23,13 +22,12 @@ public:
     explicit NiceService(const std::string& service_name);
     void start();
     void shutdown(ShutdownType s);
-    void waitUntilServiceStopped();
     std::string getServiceName();
 
     template<typename Ret, typename... Args>
     void registerMsgHandler(std::string msgName, Ret(*func)(Args...)) {
         std::map<std::string, std::function<void(std::vector<std::any>)>>* functions = nullptr;
-        _nthread->getCbMap(functions);
+        getCbMap(functions);
         (*functions)[msgName] = [func](std::vector<std::any> args) {
             if (args.size() < sizeof...(Args) + 1) {
                 std::cerr << "Argument count mismatch (expected at least one extra).\n";
@@ -52,8 +50,7 @@ public:
         std::vector<std::any> args;
         args.push_back(first_arg);
         collectArgs(args, remaining_args...);
-        Message* msg = new Message(first_arg_str, args);
-        _nthread->enqueueMsg(msg);
+        enqueMsg(first_arg_str, args);
     }
 
 private:
@@ -61,11 +58,13 @@ private:
     void collectArgs(std::vector<std::any>& args, T arg) {
         args.push_back(arg);
     }
+
     template<typename T, typename... Args>
     void collectArgs(std::vector<std::any>& args, T first, Args... rest) {
         args.push_back(first);
         collectArgs(args, rest...);
     }
+
     template<typename Ret, typename... Args, size_t... I>
     static void helper(Ret(*func)(Args...), const std::vector<std::any>& args, std::index_sequence<I...>) {
         try {
@@ -74,7 +73,10 @@ private:
             std::cerr << "Argument type mismatch: " << e.what() << "\n";
         }
     }
-    void waitUntilServiceStoppedImpl();
+
+    void waitUntilServiceStopped();
+    void enqueMsg(std::string& msgName, std::vector<std::any>& args);
+    void getCbMap(std::map<std::string, std::function<void(std::vector<std::any>)>>*& funcMap);
     std::string _service_name;
     NiceThread* _nthread;
 }; 
