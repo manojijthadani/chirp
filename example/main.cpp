@@ -19,14 +19,8 @@ class ServiceMsgHandlers {
     static void TestBoolTypesHandler(bool a);
     static void TestCharTypesHandler(char a);
     static void TestVoidTypesHandler();
-    static void TestArrayTypesHandler(int a[3]);
     static void TestPointerTypesHandler(int* a);
-    static void TestReferenceTypesHandler(int& a);
     static void TestVectorTypesHandler(std::vector<int> a);
-    static void TestMapTypesHandler(std::map<std::string, int> a);
-    static void TestSetTypesHandler(std::set<int> a);
-    static void TestListTypesHandler(std::list<int> a);
-    static void TestDequeTypesHandler(std::deque<int> a);
 };
 
 void ServiceMsgHandlers::TestIntegerTypesHandler(int a, short b, long c, long long d) {
