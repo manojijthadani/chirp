@@ -4,16 +4,14 @@
 1. [Abstract](#abstract)
 2. [Project Overview](#project-overview)
 3. [System Architecture](#system-architecture)
-4. [Core Components](#core-components)
-5. [Design Patterns](#design-patterns)
-6. [Threading Model](#threading-model)
-7. [Message Passing System](#message-passing-system)
-8. [Logging System](#logging-system)
-9. [API Design](#api-design)
-10. [Build System](#build-system)
-11. [Testing Strategy](#testing-strategy)
-12. [Performance Considerations](#performance-considerations)
-13. [Future Enhancements](#future-enhancements)
+4. [Design Patterns](#design-patterns)
+5. [Threading Model](#threading-model)
+6. [Message Passing System](#message-passing-system)
+7. [Logging System](#logging-system)
+8. [API Design](#api-design)
+9. [Build System](#build-system)
+10. [Testing Strategy](#testing-strategy)
+11. [Future Enhancements](#future-enhancements)
 
 ## Abstract
 
@@ -25,17 +23,18 @@ Nice Services is a project that aims at providing a very light weight and simple
 
 ## Project Overview
 
-TThe API for Nice Services enables developers to create services as individual threads. Each service runs in its own thread and is responsible for handling multiple tasks. Tasks are registered to a service using the `registerMsgHandler(..)` function that associates a unique message to a task. Once registered, these tasks are triggered when the service receives corresponding messages through the `postMsg(..)` call. Internally, each service manages an event queue to handle and dispatch messages to the appropriate task handlers. The tasks registered for a service are gauranteed to run on the same thread and in the order the messages came in. Hence all the tasks for a service are thread safe.
+TThe API for Nice Services enables developers to create services as individual threads. Each service runs in its own thread and is responsible for handling multiple tasks. Tasks are registered to a service using the `registerMsgHandler(..)` function that associates a unique message to a task. Once registered, these tasks are triggered when the service receives corresponding messages through the `postMsg(..)` call. Developers must ensure that the order and data types of parameters remain consistent between the `registerMsgHandler(..)` and `postMsg(..)` calls. If there is a mismatch a message will be provided in the debug log. Internally, each service manages an event queue to handle and dispatch messages to the appropriate task handlers. The tasks registered for a service are gauranteed to run on the same thread and in the order the messages came in. Hence all the tasks for a service are thread safe.
 
 Nice Services is a C++20 library that provides a lightweight, thread-safe message-passing framework for building concurrent services. The framework enables developers to create services that communicate through asynchronous message passing, with support for type-safe message handlers and flexible argument passing.
 
 ### Key Features
-- **Asynchronous Message Passing**: Services communicate through typed messages
+- **Asynchronous Message Passing**: Services communicate through typed messages that are fast.
 - **Thread Safety**: Built-in synchronization mechanisms for concurrent access
 - **Type Safety**: Template-based message handlers with compile-time type checking
-- **Flexible Argument Passing**: Support for various C++ data types including containers
-- **Graceful Shutdown**: Controlled service termination with queue draining
-- **Logging Integration**: Thread-safe logging with service-specific contexts
+- **Flexible Argument Passing**: Support for various C++ data types including containers. Parameters can be passed directly to the API's instead of containerising them. 
+- **Graceful Shutdown Of Services**: Controlled service termination.
+- **Logging Integration**: Debugging support has been provided with the help of a custom built thread-safe logging mechanism.
+- **External Dependancies**: The only external library that nice-services depends upon are the standard libraries. 
 
 ## System Architecture
 
@@ -76,69 +75,7 @@ The system follows a layered architecture with clear separation of concerns:
 └─────────────────────────────────────────────────────────────┘
 ```
 
-## Core Components
 
-### 1. NiceService
-The main service abstraction that provides the public API for creating and managing services.
-
-**Key Responsibilities:**
-- Service lifecycle management (start, shutdown, wait)
-- Message handler registration
-- Message posting interface
-- Thread coordination
-
-**Key Methods:**
-- `start()`: Initializes and starts the service thread
-- `shutdown(ShutdownType)`: Gracefully stops the service
-- `registerMsgHandler()`: Registers typed message handlers
-- `postMsg()`: Posts messages to the service
-
-### 2. NiceThread
-Manages the thread lifecycle and provides the interface between NiceService and MessageLoop.
-
-**Key Responsibilities:**
-- Thread creation and management
-- Thread state tracking
-- Message enqueueing
-- Thread synchronization
-
-**Thread States:**
-- `NOT_STARTED`: Initial state
-- `STARTED`: Thread has been created
-- `RUNNING`: Thread is actively processing messages
-- `STOPPED`: Thread has completed execution
-
-### 3. MessageLoop
-The core message processing engine that runs in its own thread.
-
-**Key Responsibilities:**
-- Message queue management
-- Message processing loop
-- Function registry management
-- Thread synchronization
-
-**Key Features:**
-- Blocking queue with mutex synchronization
-- Efficient message processing
-- Graceful shutdown with queue draining
-- Service name tracking for logging
-
-### 4. Message
-Represents a typed message with arguments.
-
-**Key Responsibilities:**
-- Message data encapsulation
-- Argument storage using `std::any`
-- Type-safe argument access
-
-### 5. NiceLogger
-Thread-safe logging system with singleton pattern.
-
-**Key Responsibilities:**
-- Thread-safe log writing
-- Service-specific log contexts
-- Buffered output with automatic flushing
-- File-based logging
 
 ## Design Patterns
 
@@ -164,25 +101,27 @@ Thread-safe logging system with singleton pattern.
 
 ## Threading Model
 
-The system uses a **Single Producer, Single Consumer** model per service:
 
+
+### Sequence Diagram
+
+```mermaid
+sequenceDiagram
+    participant MainThread as Main Thread
+    participant ServiceThread as Service Thread (MessageLoop)
+    participant Handler as Message Handler
+
+    MainThread->>ServiceThread: registerMsgHandler("MessageType", handler)
+    ServiceThread-->>MainThread: Handler registered
+    MainThread->>ServiceThread: postMsg("MessageType", args...)
+    ServiceThread->>ServiceThread: Enqueue message in queue
+    ServiceThread->>ServiceThread: Dequeue message (spin loop)
+    ServiceThread->>Handler: Call registered handler with args
+    Handler-->>ServiceThread: Handler completes
+    ServiceThread-->>MainThread: (optional) Acknowledge or log completion
 ```
-┌─────────────┐    ┌─────────────┐    ┌─────────────┐
-│   Service   │───▶│ MessageLoop │───▶│   Handler   │
-│   Thread    │    │   Thread    │    │ Execution   │
-└─────────────┘    └─────────────┘    └─────────────┘
-```
 
-**Thread Safety Mechanisms:**
-- `std::mutex` for queue access synchronization
-- `std::mutex` for task execution synchronization
-- `volatile bool` for thread stop flag
-- RAII-based lock management
 
-**Synchronization Points:**
-1. **Queue Access**: Protected by `_empty_mtx` and `_task_exec_mtx`
-2. **Thread Control**: Protected by `_task_exec_mtx`
-3. **Logger Access**: Protected by logger's internal mutex
 
 ## Message Passing System
 
@@ -285,12 +224,6 @@ nice-services/
 - Example-based testing in `example/main.cpp`
 - Comprehensive type testing demonstrated
 
-### Recommended Testing Approach
-1. **Unit Tests**: Individual component testing
-2. **Integration Tests**: Service interaction testing
-3. **Concurrency Tests**: Thread safety validation
-4. **Performance Tests**: Throughput and latency measurement
-
 ### Test Categories
 - **Message Handler Registration**: Type safety and registration
 - **Message Passing**: End-to-end message flow
@@ -298,45 +231,9 @@ nice-services/
 - **Shutdown Behavior**: Graceful termination
 - **Error Handling**: Exception scenarios
 
-## Performance Considerations
-
-### Optimizations
-1. **Lock-Free Operations**: Minimize mutex contention
-2. **Memory Management**: Efficient message allocation/deallocation
-3. **Queue Efficiency**: Optimized message queue operations
-4. **Logging Performance**: Buffered output with minimal blocking
-
-### Scalability
-- **Single Thread Per Service**: Predictable performance characteristics
-- **Independent Services**: No cross-service contention
-- **Efficient Synchronization**: Minimal lock overhead
-
-### Memory Usage
-- **Message Objects**: Dynamic allocation with proper cleanup
-- **Handler Registry**: Static storage for registered functions
-- **Logging Buffer**: Configurable buffer size
-
 ## Future Enhancements
 
-### Planned Features
-1. **Multi-Threaded Services**: Multiple worker threads per service
-2. **Message Prioritization**: Priority-based message processing
-3. **Message Persistence**: Persistent message queues
-4. **Service Discovery**: Dynamic service registration and discovery
-5. **Metrics and Monitoring**: Performance metrics collection
-6. **Configuration Management**: Runtime configuration support
 
-### Architectural Improvements
-1. **Plugin System**: Dynamic service loading
-2. **Message Serialization**: Network message passing
-3. **Load Balancing**: Automatic workload distribution
-4. **Fault Tolerance**: Service recovery mechanisms
-
-### Performance Optimizations
-1. **Lock-Free Queues**: Lock-free message queue implementation
-2. **Memory Pools**: Object pooling for message allocation
-3. **Batch Processing**: Batch message processing
-4. **Zero-Copy Messaging**: Efficient message passing
 
 ## Conclusion
 
