@@ -1,10 +1,11 @@
-# Nice Services - Architecture and Design Document
+# Nice Services
+
+# Architecture and Design Document
 
 ## Table of Contents
-1. [Abstract](#abstract)
+1. [Purpose](#purpose)
 2. [Project Overview](#project-overview)
 3. [System Architecture](#system-architecture)
-4. [Design Patterns](#design-patterns)
 5. [Threading Model](#threading-model)
 6. [Message Passing System](#message-passing-system)
 7. [Logging System](#logging-system)
@@ -13,7 +14,7 @@
 10. [Testing Strategy](#testing-strategy)
 11. [Future Enhancements](#future-enhancements)
 
-## Abstract
+## Purpose
 
 Software architects are often faced with the decision of choosing between a multi-threaded and a multi-process system design. A multi-process architecture offers strong fault tolerance, as individual processes can be independently restarted in case of failure. However, this benefit comes with the cost of inter-process communication (IPC), which introduces overhead. Modern technologies like socket communication and gRPC facilitate IPC, but they also require serialization, deserialization, and secure data transmission—each of which can add significant latency.
 
@@ -23,7 +24,7 @@ Nice Services is a project that aims at providing a very light weight and simple
 
 ## Project Overview
 
-TThe API for Nice Services enables developers to create services as individual threads. Each service runs in its own thread and is responsible for handling multiple tasks. Tasks are registered to a service using the `registerMsgHandler(..)` function that associates a unique message to a task. Once registered, these tasks are triggered when the service receives corresponding messages through the `postMsg(..)` call. Developers must ensure that the order and data types of parameters remain consistent between the `registerMsgHandler(..)` and `postMsg(..)` calls. If there is a mismatch a message will be provided in the debug log. Internally, each service manages an event queue to handle and dispatch messages to the appropriate task handlers. The tasks registered for a service are gauranteed to run on the same thread and in the order the messages came in. Hence all the tasks for a service are thread safe.
+The API for Nice Services enables developers to create services as individual threads. Each service runs in its own thread and is responsible for handling multiple tasks. Tasks are registered to a service using the `registerMsgHandler(..)` function that associates a unique message to a task. Once registered, these tasks are triggered when the service receives corresponding messages through the `postMsg(..)` call. Developers must ensure that the order and data types of parameters remain consistent between the `registerMsgHandler(..)` and `postMsg(..)` calls. If there is a mismatch a message will be provided in the debug log. Internally, each service manages an event queue to handle and dispatch messages to the appropriate task handlers. The tasks registered for a service are gauranteed to run on the same thread and in the order the messages came in. Hence all the tasks for a service are thread safe.
 
 Nice Services is a C++20 library that provides a lightweight, thread-safe message-passing framework for building concurrent services. The framework enables developers to create services that communicate through asynchronous message passing, with support for type-safe message handlers and flexible argument passing.
 
@@ -42,7 +43,7 @@ The system follows a layered architecture with clear separation of concerns:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    Application Layer                        │
+│            Application Layer / Process                      │
 │  ┌─────────────────┐  ┌─────────────────┐  ┌──────────────┐ │
 │  │   Service 1     │  │   Service 2     │  │   Service N  │ │
 │  └─────────────────┘  └─────────────────┘  └──────────────┘ │
@@ -77,31 +78,15 @@ The system follows a layered architecture with clear separation of concerns:
 
 
 
-## Design Patterns
-
-### 1. Singleton Pattern (NiceLogger)
-- Ensures single logger instance per service
-- Thread-safe implementation with mutex protection
-- Buffered output for performance
-
-### 2. Template Method Pattern (Message Handlers)
-- Type-safe message handler registration
-- Compile-time type checking
-- Flexible argument passing
-
-### 3. Producer-Consumer Pattern (MessageLoop)
-- Message producers (postMsg) and consumers (spin loop)
-- Thread-safe queue with mutex synchronization
-- Blocking behavior when queue is empty
-
-### 4. Observer Pattern (Message Handlers)
-- Services register handlers for specific message types
-- Decoupled message processing
-- Dynamic handler registration
-
 ## Threading Model
 
+The main thread instantiates a `NiceService`, which in turn spawns a dedicated service thread equipped with its own message queue. The main thread registers a message handler with this service. Any thread with access to the `NiceService` instance can post messages via the `postMsg(..)` method. It is essential to maintain the correct parameter order and data types when posting messages; mismatches will trigger messages in the logs.
 
+Once a message is posted, it is enqueued in the service’s message queue. When the service thread is idle, it dequeues the next message and dispatches the corresponding handler. This ensures all handlers are executed within the context of the service thread. After a handler finishes execution, the service proceeds to the next message in the queue, guaranteeing that tasks are processed sequentially, without concurrency. This continues till the thread is empty. In this state the thread is merely waiting on a mutex.
+
+Messages can be registered with the service at any time, even after the service has been started. If messages are posted on a service have no registered handlers, the posted messages are dropped on the floor.
+
+This behaviour can be explained with the help of a sequence diagram below.
 
 ### Sequence Diagram
 
@@ -113,6 +98,8 @@ sequenceDiagram
 
     MainThread->>ServiceThread: registerMsgHandler("MessageType", handler)
     ServiceThread-->>MainThread: Handler registered
+    MainThread->>ServiceThread: start()
+    ServiceThread-->>MainThread: Service thread started
     MainThread->>ServiceThread: postMsg("MessageType", args...)
     ServiceThread->>ServiceThread: Enqueue message in queue
     ServiceThread->>ServiceThread: Dequeue message (spin loop)
@@ -140,28 +127,21 @@ class Message {
 4. **Handler Execution**: Registered handlers are called with typed arguments
 
 ### Type Safety
-- Template-based handler registration ensures compile-time type checking
+- Template-based handler registration ensures compile-time type checking. The matching list of parameters between the registered handler and the call to postMsg(..) is a run time check.
 - `std::any` provides runtime type safety for arguments
 - Exception handling for type mismatches
 
 ## Logging System
 
-### Design Principles
-- **Thread Safety**: All logging operations are mutex-protected
-- **Performance**: Buffered output with automatic flushing
-- **Context Awareness**: Service-specific log contexts
-- **Singleton Pattern**: Single logger instance per service
+Debugging in Nice Services can be enabled by setting the environment variable `NICE_SERVICE_DEBUG=1`. When enabled, a log file named `nice_log.txt` is created in the `/tmp` directory each time a process using Nice Services starts. Note that this environment variable must be set **before** the process is launched. With each startup, any existing log file is overwritten.
+
+The logger is implemented as a singleton, allowing it to be accessed safely from any thread.
 
 ### Usage Pattern
+
 ```cpp
 NiceLogger::instance("ServiceName") << "Log message" << std::endl;
 ```
-
-### Features
-- Automatic file creation and management
-- Thread-safe concurrent access
-- Buffered output for performance
-- Service name prefixing
 
 ## API Design
 
@@ -204,7 +184,6 @@ service.registerMsgHandler("MessageType", handler);
 - **Minimum Version**: CMake 3.10
 - **C++ Standard**: C++20
 - **Project Structure**: Modular with separate src, tests, and example directories
-- **Testing**: Enabled with `enable_testing()`
 
 ### Directory Structure
 ```
@@ -219,17 +198,7 @@ nice-services/
 
 ## Testing Strategy
 
-### Current State
-- Basic test framework in place
-- Example-based testing in `example/main.cpp`
-- Comprehensive type testing demonstrated
 
-### Test Categories
-- **Message Handler Registration**: Type safety and registration
-- **Message Passing**: End-to-end message flow
-- **Thread Safety**: Concurrent access patterns
-- **Shutdown Behavior**: Graceful termination
-- **Error Handling**: Exception scenarios
 
 ## Future Enhancements
 
