@@ -1,8 +1,8 @@
 /**
  * @file nice_service.h
  * @brief Main service interface for Nice Services framework
- * @author Nice Services Team
- * @date 2024
+ * @author Nice Services Team (Manoj IJ Thadani)
+ * @date 2025
  * @version 1.0
  * 
  * This file defines the NiceService class, which provides a high-level interface

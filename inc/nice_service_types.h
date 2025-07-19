@@ -1,8 +1,8 @@
 /**
  * @file nice_service_types.h
  * @brief Common type definitions for Nice Services framework
- * @author Nice Services Team
- * @date 2024
+ * @author Nice Services Team (Manoj IJ Thadani)
+ * @date 2025
  * @version 1.0
  * 
  * This file contains common type definitions used throughout the Nice Services
