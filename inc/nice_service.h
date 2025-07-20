@@ -20,6 +20,9 @@
 #include <sstream>
 #include "nice_service_types.h"
 
+// Note: Forward declaration to prevent the inclusion of any private headers.
+// This keeps the spirit of data abstraction, so API consumer shall include only
+// this one public header file.
 class NiceServiceImpl;
 
 /**
