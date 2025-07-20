@@ -3,13 +3,6 @@
 #include <thread>
 #include "message_loop.h"
 
-enum class ThreadState {
-    NOT_STARTED,
-    STARTED,
-    RUNNING,
-    STOPPED
-};
-
 class NiceThread {
 
 public:
@@ -28,7 +21,16 @@ public:
                   std::function<void(std::vector<std::any>)>>*& funcMap);
 
     bool isThreadStopped();        
+    
 private:
+
+enum class ThreadState {
+    NOT_STARTED,
+    STARTED,
+    RUNNING,
+    STOPPED
+};
+
     MessageLoop _mloop;
     std::thread* _t;
     std::string _service_name;

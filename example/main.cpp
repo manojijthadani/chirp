@@ -9,7 +9,7 @@
 #include "nice_service.h"
 
 class ServiceMsgHandlers {
-    public:
+public:
     ServiceMsgHandlers() = default;
     ~ServiceMsgHandlers() = default;
 
@@ -24,43 +24,30 @@ class ServiceMsgHandlers {
 };
 
 void ServiceMsgHandlers::TestIntegerTypesHandler(int a, short b, long c, long long d) {
-
-    std::cout << "****In TestIntegerTypesHandler callback " 
-                                     << a << " " 
-                                     << b << " " 
-                                     << c << " " 
-                                     << d  << std::endl;
+    std::cout << "In TestIntegerTypesHandler callback "
+              << a << " " << b << " " << c << " " << d << std::endl;
 }
 
 void ServiceMsgHandlers::TestFloatingTypesHandler(float a, double b, long double c) {
-
-    std::cout << "****In TestFloatingTypesHandler callback " 
-                                     << a  << " " 
-                                     << b << " " 
-                                     << c << std::endl;
+    std::cout << "In TestFloatingTypesHandler callback "
+              << a << " " << b << " " << c << std::endl;
 }
 
 void ServiceMsgHandlers::TestStringTypesHandler(std::string a) {
-
-    std::cout << "****In TestStringTypesHandler callback " 
-                                     << a << std::endl;
+    std::cout << "In TestStringTypesHandler callback " << a << std::endl;
 }
 
 void ServiceMsgHandlers::TestBoolTypesHandler(bool a) {
-
-    std::cout << "****In TestBoolTypesHandler callback " 
-                                     << std::boolalpha << a << std::endl;
+    std::cout << "In TestBoolTypesHandler callback "
+              << std::boolalpha << a << std::endl;
 }
 
 void ServiceMsgHandlers::TestCharTypesHandler(char a) {
-
-    std::cout << "****In TestCharTypesHandler callback " 
-                                     << a << std::endl;
+    std::cout << "In TestCharTypesHandler callback " << a << std::endl;
 }
 
 void ServiceMsgHandlers::TestVectorTypesHandler(std::vector<int> a) {
-
-    std::cout << "****In TestVectorTypesHandler callback vector: ";
+    std::cout << "In TestVectorTypesHandler callback vector: ";
     for (const auto& val : a) {
         std::cout << val << " ";
     }
@@ -68,13 +55,10 @@ void ServiceMsgHandlers::TestVectorTypesHandler(std::vector<int> a) {
 }
 
 void ServiceMsgHandlers::TestPointerTypesHandler(int* a) {
-
-    std::cout << "****In TestPointerTypesHandler callback address: " 
-                                     << " value: " << *a << std::endl;
+    std::cout << "In TestPointerTypesHandler callback value: " << *a << std::endl;
 }
 
 int main() {
-
     ServiceMsgHandlers mh;
 
     NiceService svc1("Service1");
@@ -95,13 +79,15 @@ int main() {
     svc1.postMsg("TestStringTypes", std::string("Hello, World!"));
     svc2.postMsg("TestBoolTypes", true);
     svc1.postMsg("TestCharTypes", 'a');
-    
+
     int a = 10;
     svc1.postMsg("TestPointerTypes", &a);
 
     std::vector<int> vec = {1, 2, 3, 4, 5};
     svc2.postMsg("TestVectorTypes", vec);
-    
+
+    // Wait for 3 seconds to allow the services to process the messages before
+    // shutting down the application.
     std::this_thread::sleep_for(std::chrono::seconds(3));
 
     svc1.shutdown(ShutdownType::NORMAL);

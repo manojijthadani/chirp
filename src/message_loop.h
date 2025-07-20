@@ -32,8 +32,6 @@ public:
 private:
 
     void setStopThread(bool st);
-    bool getStopThread();
-    
     
     std::queue<Message*> _message_queue;
     std::string _service_name;
