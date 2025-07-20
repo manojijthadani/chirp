@@ -98,16 +98,18 @@ public:
     void registerMsgHandler(std::string msgName, Ret(*func)(Args...)) {
         std::map<std::string, std::function<void(std::vector<std::any>)>>* functions = nullptr;
         getCbMap(functions);
-        (*functions)[msgName] = [func](std::vector<std::any> args) {
+        (*functions)[msgName] = [this, func](std::vector<std::any> args) {
             if (args.size() < sizeof...(Args) + 1) {
-                std::cerr << "Argument count mismatch (expected at least one extra).\n";
+                std::cerr << this->getServiceName() 
+                          << " Argument count mismatch (expected at least one extra).\n";
                 return;
             }
             std::vector<std::any> slicedArgs(args.begin() + 1, args.end());
             try {
                 helper(func, slicedArgs, std::index_sequence_for<Args...>{});
             } catch (const std::bad_any_cast& e) {
-                std::cerr << "Argument type mismatch: " << e.what() << '\n';
+                std::cerr << this->getServiceName() 
+                          << " Argument type mismatch: " << e.what() << '\n';
             }
         };
     }
@@ -138,6 +140,13 @@ public:
 
 private:
     /**
+     * @brief Base case for collectArgs when there are no arguments left
+     * @param args Vector to collect arguments in
+     */
+    void collectArgs(std::vector<std::any>&) {
+        // Base case: do nothing
+    }
+    /**
      * @brief Helper function to collect arguments (base case)
      * @tparam T Type of the argument
      * @param args Vector to collect arguments in
@@ -147,7 +156,6 @@ private:
     void collectArgs(std::vector<std::any>& args, T arg) {
         args.push_back(arg);
     }
-
     /**
      * @brief Helper function to collect arguments (recursive case)
      * @tparam T Type of the first argument
@@ -172,11 +180,11 @@ private:
      * @param seq Index sequence for unpacking arguments
      */
     template<typename Ret, typename... Args, size_t... I>
-    static void helper(Ret(*func)(Args...), const std::vector<std::any>& args, std::index_sequence<I...>) {
+    void helper(Ret(*func)(Args...), const std::vector<std::any>& args, std::index_sequence<I...>) {
         try {
             func(std::any_cast<Args>(args[I])...);
         } catch (const std::bad_any_cast& e) {
-            std::cerr << "Argument type mismatch: " << e.what() << "\n";
+            std::cerr << this->getServiceName() << " Argument type mismatch: " << e.what() << "\n";
         }
     }
     

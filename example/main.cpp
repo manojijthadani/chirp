@@ -58,6 +58,10 @@ void ServiceMsgHandlers::TestPointerTypesHandler(int* a) {
     std::cout << "In TestPointerTypesHandler callback value: " << *a << std::endl;
 }
 
+void ServiceMsgHandlers::TestVoidTypesHandler() {
+    std::cout << "In TestVoidTypesHandler callback" << std::endl;
+}
+
 int main() {
     ServiceMsgHandlers mh;
 
@@ -72,6 +76,7 @@ int main() {
     svc2.registerMsgHandler("TestFloatingTypes", mh.TestFloatingTypesHandler);
     svc2.registerMsgHandler("TestBoolTypes", mh.TestBoolTypesHandler);
     svc2.registerMsgHandler("TestVectorTypes", mh.TestVectorTypesHandler);
+    svc2.registerMsgHandler("TestVoidTypes", mh.TestVoidTypesHandler);
     svc2.start();
 
     svc1.postMsg("TestIntegerTypes", 2, (short)100, (long)1000, (long long)10000);
@@ -85,7 +90,16 @@ int main() {
 
     std::vector<int> vec = {1, 2, 3, 4, 5};
     svc2.postMsg("TestVectorTypes", vec);
+    svc2.postMsg("TestVoidTypes");
 
+    // Now lets try some negative testing.
+    // This should fail. Invalid number of arguments.
+    svc1.postMsg("TestIntegerTypes", 2);
+    // This should fail. Invalid type of arguments.
+    svc1.postMsg("TestIntegerTypes", std::string("Negative test"));    
+    // This should fail. Invalid order of arguments.
+    svc1.postMsg("TestIntegerTypes", (short)100, 2, (long)1000, (long long)10000);
+    
     // Wait for 3 seconds to allow the services to process the messages before
     // shutting down the application.
     std::this_thread::sleep_for(std::chrono::seconds(3));
