@@ -18,7 +18,7 @@
 #include <string>
 #include <iostream>
 #include <sstream>
-#include "nice_service_types.h"
+
 
 // Note: Forward declaration to prevent the inclusion of any private headers.
 // This keeps the spirit of data abstraction, so API consumer shall include only
@@ -41,7 +41,7 @@ class NiceServiceImpl;
  * service.registerMsgHandler("TestMessage", myHandler);
  * service.start();
  * service.postMsg("TestMessage", 42, "hello");
- * service.shutdown(ShutdownType::NORMAL);
+ * service.shutdown();
  * @endcode
  */
 class NiceService {
@@ -72,11 +72,10 @@ public:
     
     /**
      * @brief Shutdown the service
-     * @param s The shutdown type (NORMAL or FORCE)
      * 
      * Gracefully stops the service and waits for completion.
      */
-    void shutdown(ShutdownType s);
+    void shutdown();
     
     /**
      * @brief Get the service name
@@ -115,30 +114,6 @@ public:
                           << " Argument type mismatch: " << e.what() << '\n';
             }
         };
-    }
-
-    /**
-     * @brief Post a message to the service
-     * @tparam T Type of the first argument (message name)
-     * @tparam Args Variadic template for remaining arguments
-     * @param first_arg The message name (first argument)
-     * @param remaining_args The arguments to pass to the handler
-     * 
-     * Posts a message to the service queue. The first argument is converted
-     * to a string and used as the message name. The remaining arguments
-     * are passed to the registered handler.
-     * 
-     * @note This method is thread-safe and can be called from any thread
-     */
-    template<typename T, typename... Args>
-    void postMsg(T first_arg, Args... remaining_args) {
-        std::ostringstream oss;
-        oss << first_arg;
-        std::string first_arg_str = oss.str();
-        std::vector<std::any> args;
-        args.push_back(first_arg);
-        collectArgs(args, remaining_args...);
-        enqueMsg(first_arg_str, args);
     }
 
 private:
@@ -197,6 +172,19 @@ private:
      * @param args The message arguments
      */
     void enqueMsg(std::string& msgName, std::vector<std::any>& args);
+
+    /**
+     * @brief Enqueue a message for synchronous processing
+     * @param msgName The message name
+     * @param args The message arguments
+     *
+     * Enqueues a message to be processed synchronously by the service. This is
+     * used internally by syncMsg to ensure the calling thread waits for the
+     * handler to complete and return a result.
+     *
+     * @note This method is intended for internal use by syncMsg.
+     */
+    void enqueSyncMsg(std::string& msgName, std::vector<std::any>& args);
     
     /**
      * @brief Get the callback map for message handlers
@@ -205,4 +193,68 @@ private:
     void getCbMap(std::map<std::string, std::function<void(std::vector<std::any>)>>*& funcMap);
     
     NiceServiceImpl* _impl; ///< Implementation pointer
+
+    /**
+     * @brief Helper to build message and argument vector, then enqueue
+     * @tparam EnqueueFunc Type of the enqueue function
+     * @tparam T Type of the first argument (message name)
+     * @tparam Args Variadic template for remaining arguments
+     * @param enqueue The function to call with the built message and args
+     * @param first_arg The message name (first argument)
+     * @param remaining_args The arguments to pass to the handler
+     */
+    template<typename EnqueueFunc, typename T, typename... Args>
+    void buildAndEnqueue(EnqueueFunc enqueue, T first_arg, Args... remaining_args) {
+        std::ostringstream oss;
+        oss << first_arg;
+        std::string first_arg_str = oss.str();
+        std::vector<std::any> args;
+        args.push_back(first_arg);
+        collectArgs(args, remaining_args...);
+        enqueue(first_arg_str, args);
+    }
+
+public:
+    /**
+     * @brief Post a message to the service
+     * @tparam T Type of the first argument (message name)
+     * @tparam Args Variadic template for remaining arguments
+     * @param first_arg The message name (first argument)
+     * @param remaining_args The arguments to pass to the handler
+     *
+     * Posts a message to the service queue. The first argument is converted
+     * to a string and used as the message name. The remaining arguments
+     * are passed to the registered handler.
+     *
+     * @note This method is thread-safe and can be called from any thread
+     */
+    template<typename T, typename... Args>
+    void postMsg(T first_arg, Args... remaining_args) {
+        buildAndEnqueue(
+            [this](std::string& msg, std::vector<std::any>& args) { enqueMsg(msg, args); },
+            first_arg, remaining_args...
+        );
+    }
+
+    /**
+     * @brief Synchronously post a message to the service and wait for the result
+     * @tparam T Type of the first argument (message name)
+     * @tparam Args Variadic template for remaining arguments
+     * @param first_arg The message name (first argument)
+     * @param remaining_args The arguments to pass to the handler
+     *
+     * Posts a message to the service and blocks until the handler has processed
+     * the message. The first argument is converted to a string and used as the
+     * message name. The remaining arguments are passed to the registered handler.
+     *
+     * @note This method is thread-safe and can be called from any thread.
+     * @note The handler function should not be void.
+     */
+    template<typename T, typename... Args>
+    void syncMsg(T first_arg, Args... remaining_args) {
+        buildAndEnqueue(
+            [this](std::string& msg, std::vector<std::any>& args) { enqueSyncMsg(msg, args); },
+            first_arg, remaining_args...
+        );
+    }
 }; 

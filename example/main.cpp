@@ -91,6 +91,9 @@ int main() {
     std::vector<int> vec = {1, 2, 3, 4, 5};
     svc2.postMsg("TestVectorTypes", vec);
     svc2.postMsg("TestVoidTypes");
+    std::cout << "Syncing TestVoidTypes" << std::endl;
+    svc2.syncMsg("TestVoidTypes");
+    std::cout << "Synced TestVoidTypes" << std::endl;
 
     // Now lets try some negative testing.
     // This should fail. Invalid number of arguments.
@@ -104,8 +107,8 @@ int main() {
     // shutting down the application.
     std::this_thread::sleep_for(std::chrono::seconds(3));
 
-    svc1.shutdown(ShutdownType::NORMAL);
-    svc2.shutdown(ShutdownType::NORMAL);
+    svc1.shutdown();
+    svc2.shutdown();
 
     return 0;
 }

@@ -15,9 +15,9 @@ void NiceServiceImpl::start() {
     _nthread->startThread();
 }
 
-void NiceServiceImpl::shutdown(ShutdownType s) {
+void NiceServiceImpl::shutdown() {
     NiceLogger::instance(_service_name) << "Stopping " << _service_name << std::endl;
-    _nthread->stopThread((s == ShutdownType::NORMAL ? false : true));
+    _nthread->stopThread();
     waitUntilServiceStopped();
 }
 
@@ -32,8 +32,13 @@ std::string NiceServiceImpl::getServiceName() {
 }
 
 void NiceServiceImpl::enqueMsg(std::string& msgName, std::vector<std::any>& args) {
-    Message* msg = new Message(msgName, args);
+    Message* msg = new Message(msgName, Message::MessageType::ASYNC, args);
     _nthread->enqueueMsg(msg);
+}
+
+void NiceServiceImpl::enqueSyncMsg(std::string& msgName, std::vector<std::any>& args) {
+    Message* msg = new Message(msgName, Message::MessageType::SYNC, args);
+    _nthread->enqueueSyncMsg(msg);
 }
 
 void NiceServiceImpl::getCbMap(std::map<std::string, std::function<void(std::vector<std::any>)>>*& funcMap) {

@@ -80,7 +80,7 @@ The system follows a layered architecture with clear separation of concerns:
 
 ## Threading Model
 
-The main thread instantiates a `NiceService`, which in turn spawns a dedicated service thread equipped with its own message queue. The main thread registers a message handler with this service. Any thread with access to the `NiceService` instance can post messages via the `postMsg(..)` method. It is essential to maintain the correct parameter order and data types when posting messages; mismatches will trigger messages in the logs.
+The main thread instantiates a `NiceService`, which in turn spawns a dedicated service thread equipped with its own message queue. The main thread registers a message handler with this service. Any thread with access to the `NiceService` instance can post messages via the `postMsg(..)` method. It is essential to maintain the correct parameter order and data types when posting messages; mismatches will trigger messages in the logs. The system supports both asynchronous and synchronous message posting. Asynchronous messages are posted with `postMsg` and processed in FIFO order, while synchronous messages posted with `syncMsg` block the caller until the handler completes.
 
 Once a message is posted, it is enqueued in the service’s message queue. When the service thread is idle, it dequeues the next message and dispatches the corresponding handler. This ensures all handlers are executed within the context of the service thread. After a handler finishes execution, the service proceeds to the next message in the queue, guaranteeing that tasks are processed sequentially, without concurrency. This continues till the thread is empty. In this state the thread is merely waiting on a mutex.
 
@@ -100,12 +100,15 @@ sequenceDiagram
     ServiceThread-->>MainThread: Handler registered
     MainThread->>ServiceThread: start()
     ServiceThread-->>MainThread: Service thread started
-    MainThread->>ServiceThread: postMsg("MessageType", args...)
-    ServiceThread->>ServiceThread: Enqueue message in queue
-    ServiceThread->>ServiceThread: Dequeue message (spin loop)
-    ServiceThread->>Handler: Call registered handler with args
+    MainThread->>ServiceThread: postMsg("MessageTypeAsync", args...)
+    ServiceThread->>ServiceThread: Enqueue message (ASYNC)
+    MainThread->>ServiceThread: syncMsg("MessageTypeSync", args...)
+    ServiceThread->>ServiceThread: Enqueue message (SYNC)
+    ServiceThread->>ServiceThread: Dequeue message (ASYNC)
+    ServiceThread->>Handler: Call registered handler for ASYNC with args
     Handler-->>ServiceThread: Handler completes
-    ServiceThread-->>MainThread: (optional) Acknowledge or log completion
+    ServiceThread->>Handler: Call registered handler for SYNC with args
+    ServiceThread-->>MainThread: Unblock caller (syncMsg returns)
 ```
 
 
@@ -156,12 +159,23 @@ service.registerMsgHandler("MessageType", handlerFunction);
 // Start service
 service.start();
 
-// Post messages
+// Post asynchronous messages
 service.postMsg("MessageType", arg1, arg2, arg3);
+
+// Post synchronous messages and wait for completion
+service.syncMsg("MessageType", arg1, arg2, arg3);
 
 // Shutdown service
 service.shutdown(ShutdownType::NORMAL);
 ```
+
+### Synchronous Message Handling
+
+The `syncMsg` API allows a thread to post a message to a service and block until the corresponding handler has completed execution. This is useful for request/response patterns or when a result is needed before proceeding. Internally, the message is enqueued with a type indicating synchronous processing. The service thread processes the message, and the calling thread is blocked until the handler completes, at which point it is unblocked.
+
+- **Thread Safety:** The syncMsg call is thread-safe and can be invoked from any thread.
+- **Blocking Behavior:** The calling thread is blocked until the handler finishes.
+- **Use Cases:** Request/response, command/acknowledge, or any scenario requiring synchronous coordination between threads.
 
 ### Message Handler Registration
 ```cpp

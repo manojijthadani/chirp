@@ -7,9 +7,10 @@ public:
 
     explicit NiceServiceImpl(const std::string& service_name);
     void start();
-    void shutdown(ShutdownType s);
+    void shutdown();
     std::string getServiceName();
     void enqueMsg(std::string& msgName, std::vector<std::any>& args);
+    void enqueSyncMsg(std::string& msgName, std::vector<std::any>& args);
     void getCbMap(std::map<std::string, std::function<void(std::vector<std::any>)>>*& funcMap);
 
 private:

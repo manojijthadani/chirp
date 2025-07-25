@@ -12,16 +12,13 @@ public:
     explicit NiceThread(const std::string& service_name);
 
     void startThread();
-
-    void stopThread(bool shutdownType);
-
+    void stopThread();
     void enqueueMsg(Message* m);
-
+    void enqueueSyncMsg(Message* m);
     void getCbMap(std::map<std::string, 
                   std::function<void(std::vector<std::any>)>>*& funcMap);
-
     bool isThreadStopped();        
-    
+
 private:
 
 enum class ThreadState {

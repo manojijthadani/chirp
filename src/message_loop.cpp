@@ -8,6 +8,7 @@
 
 #include "message_loop.h"
 #include "nice_logger.h"
+#include "message.h"
 
 void MessageLoop::spin() {
     bool st_thread = false;
@@ -32,6 +33,11 @@ void MessageLoop::spin() {
                                                     << msg << " with " << args.size() << " arguments" << std::endl;
                 it->second(args);
             }
+            Message::MessageType mt;
+            m->getMessageType(mt);
+            if (mt == Message::MessageType::SYNC) {
+                m->sync_notify();
+            }
             delete m;
         }
         st_thread = _stop_thread;
@@ -41,6 +47,14 @@ void MessageLoop::spin() {
 }
 
 void MessageLoop::enqueue(Message* m) {
+    enqueueInternal(m, Message::MessageType::ASYNC);
+}
+
+void MessageLoop::enqueueSync(Message* m) {
+    enqueueInternal(m, Message::MessageType::SYNC);
+}
+
+void MessageLoop::enqueueInternal(Message* m, Message::MessageType type) {
     if (!_stop_thread) {
         std::string msg;
         m->getMessage(msg);
@@ -48,6 +62,13 @@ void MessageLoop::enqueue(Message* m) {
         _message_queue.push(m);
         if (!_message_queue.empty()) {
             _empty_mtx.unlock();
+        }
+        if (type == Message::MessageType::SYNC) {
+            NiceLogger::instance(_service_name) 
+            << "Blocking caller thread on a sync call " << std::endl;
+            m->sync_wait();
+            NiceLogger::instance(_service_name) 
+            << "Unblocking caller thread on a sync call " << std::endl;
         }
     }
 }
@@ -81,9 +102,7 @@ void MessageLoop::drainQueue() {
     _task_exec_mtx.unlock();
 }
 
-void MessageLoop::stop(bool sType) {
-    if (sType == false) {
-        setStopThread(true);
-        _empty_mtx.unlock();
-    }
+void MessageLoop::stop() {
+    setStopThread(true);
+    _empty_mtx.unlock();
 }

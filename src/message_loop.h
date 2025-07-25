@@ -18,20 +18,19 @@ public:
     ~MessageLoop() = default;
 
     void spin();
-
     void enqueue(Message* m);
-
+    void enqueueSync(Message* m);
     void setServiceName(const std::string& service_name);
-
     void getCbMap(std::map<std::string, 
                   std::function<void(std::vector<std::any>)>>*& funcMap);
 
-    void stop(bool sType);
+    void stop();
     void drainQueue();
 
 private:
 
     void setStopThread(bool st);
+    void enqueueInternal(Message* m, Message::MessageType type);
     
     std::queue<Message*> _message_queue;
     std::string _service_name;

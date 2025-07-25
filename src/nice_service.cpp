@@ -16,8 +16,8 @@ void NiceService::start() {
     _impl->start();
 }
 
-void NiceService::shutdown(ShutdownType s) {
-    _impl->shutdown(s);
+void NiceService::shutdown() {
+    _impl->shutdown();
 }
 
 std::string NiceService::getServiceName() {
@@ -26,6 +26,10 @@ std::string NiceService::getServiceName() {
 
 void NiceService::enqueMsg(std::string& msgName, std::vector<std::any>& args) {
     _impl->enqueMsg(msgName, args);
+}
+
+void NiceService::enqueSyncMsg(std::string& msgName, std::vector<std::any>& args) {
+    _impl->enqueSyncMsg(msgName, args);
 }
 
 void NiceService::getCbMap(std::map<std::string, std::function<void(std::vector<std::any>)>>*& funcMap) {

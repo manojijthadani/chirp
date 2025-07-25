@@ -18,15 +18,19 @@ void NiceThread::enqueueMsg(Message* m) {
     _mloop.enqueue(m);
 }
 
+void NiceThread::enqueueSyncMsg(Message* m) {
+    _mloop.enqueueSync(m);
+}
+
 void NiceThread::getCbMap(std::map<std::string, std::function<void(std::vector<std::any>)>>*& funcMap) {
     _mloop.getCbMap(funcMap);
 }
 
-void NiceThread::stopThread(bool shutdownType) {
-    _mloop.stop(shutdownType);
+void NiceThread::stopThread() {  
+    _mloop.stop();
     _t->join();
     _mloop.drainQueue();
-    NiceLogger::instance(_service_name) << "Thread joined, loop drained." << std::endl;
+    NiceLogger::instance(_service_name) << "Normal shutdown. Q Drained" << std::endl;    
     _state = ThreadState::STOPPED;
 }
 
