@@ -63,6 +63,8 @@ void ServiceMsgHandlers::TestVoidTypesHandler() {
 }
 
 int main() {
+    std::cout << "NiceService API version: " << NiceService::getVersion() << std::endl;
+
     ServiceMsgHandlers mh;
 
     NiceService svc1("Service1");

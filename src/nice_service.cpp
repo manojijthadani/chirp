@@ -8,6 +8,12 @@
 // A simple reflection pattern implemented to abstract NiceService class.
 // Cannot implement a typical interface pattern because templated functions 
 // cannot be virtual as of C++ 20.
+const std::string NiceService::_version = "1.0";
+
+const std::string& NiceService::getVersion() {
+    return _version;
+}
+
 NiceService::NiceService(const std::string& service_name) {
     _impl = new NiceServiceImpl(service_name);
 }

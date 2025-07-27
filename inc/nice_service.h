@@ -116,7 +116,14 @@ public:
         };
     }
 
+    /**
+     * @brief Get the version of the NiceService API
+     * @return The version string (e.g., "1.0")
+     */
+    static const std::string& getVersion();
+
 private:
+    static const std::string _version;
     /**
      * @brief Base case for collectArgs when there are no arguments left
      * @param args Vector to collect arguments in
