@@ -1,11 +1,11 @@
 #pragma once
 
-class NiceServiceImpl {
+class ChirpImpl {
 public:
-    NiceServiceImpl() = default;
-    ~NiceServiceImpl() = default;
+    ChirpImpl() = default;
+    ~ChirpImpl() = default;
 
-    explicit NiceServiceImpl(const std::string& service_name);
+    explicit ChirpImpl(const std::string& service_name);
     void start();
     void shutdown();
     std::string getServiceName();
@@ -16,5 +16,5 @@ public:
 private:
     void waitUntilServiceStopped();
     std::string _service_name;
-    NiceThread* _nthread;
+    ChirpThread* _nthread;
 }; 

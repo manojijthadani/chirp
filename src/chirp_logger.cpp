@@ -4,17 +4,17 @@
 #include <ctime>
 #include <cstdlib>
 
-#include "nice_logger.h"
+#include "chirp_logger.h"
 
-NiceLogger& NiceLogger::instance(const std::string& serviceName) {
-    static NiceLogger loggerInstance;
+ChirpLogger& ChirpLogger::instance(const std::string& serviceName) {
+    static ChirpLogger loggerInstance;
     if (!serviceName.empty()) {
         loggerInstance.setServiceName(serviceName);
     }
     return loggerInstance;
 }
 
-NiceLogger::NiceLogger(const std::string& filename) {
+ChirpLogger::ChirpLogger(const std::string& filename) {
     const char* debug_env = std::getenv("NICE_SERVICES_DEBUG");
     if (debug_env && std::string(debug_env) == "1") {
         // Open in write-only mode, truncating the file each time
@@ -26,18 +26,18 @@ NiceLogger::NiceLogger(const std::string& filename) {
     _serviceName = "";
 }
 
-NiceLogger::~NiceLogger() {
+ChirpLogger::~ChirpLogger() {
     flush();
     if (_ofs.is_open()) {
         _ofs.close();
     }
 }
 
-void NiceLogger::setServiceName(const std::string& serviceName) {
+void ChirpLogger::setServiceName(const std::string& serviceName) {
     _serviceName = serviceName;
 }
 
-NiceLogger& NiceLogger::operator<<(std::ostream& (*manip)(std::ostream&)) {
+ChirpLogger& ChirpLogger::operator<<(std::ostream& (*manip)(std::ostream&)) {
     std::lock_guard<std::mutex> lock(_mtx);
     if (_ofs.is_open() && manip == static_cast<std::ostream& (*)(std::ostream&)>(std::endl)) {
         flush();
@@ -45,7 +45,7 @@ NiceLogger& NiceLogger::operator<<(std::ostream& (*manip)(std::ostream&)) {
     return *this;
 }
 
-void NiceLogger::flush() {
+void ChirpLogger::flush() {
     if (_ofs.is_open()) {
         // Get current time with milliseconds
         auto now = std::chrono::system_clock::now();

@@ -1,5 +1,5 @@
-# Doxyfile for Nice Services
-PROJECT_NAME           = "Nice Services"
+# Doxyfile for Chirp
+PROJECT_NAME           = "Chirp"
 PROJECT_NUMBER         = 1.0
 PROJECT_BRIEF          = "A lightweight, thread-safe message-passing framework"
 OUTPUT_DIRECTORY       = docs/doxygen

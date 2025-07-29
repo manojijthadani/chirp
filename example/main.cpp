@@ -6,7 +6,7 @@
 #include <list>
 #include <deque>
 
-#include "nice_service.h"
+#include "chirp.h"
 
 class ServiceMsgHandlers {
 public:
@@ -63,18 +63,18 @@ void ServiceMsgHandlers::TestVoidTypesHandler() {
 }
 
 int main() {
-    std::cout << "NiceService API version: " << NiceService::getVersion() << std::endl;
+    std::cout << "Chirp API version: " << Chirp::getVersion() << std::endl;
 
     ServiceMsgHandlers mh;
 
-    NiceService svc1("Service1");
+    Chirp svc1("Service1");
     svc1.registerMsgHandler("TestIntegerTypes", mh.TestIntegerTypesHandler);
     svc1.registerMsgHandler("TestStringTypes", mh.TestStringTypesHandler);
     svc1.registerMsgHandler("TestCharTypes", mh.TestCharTypesHandler);
     svc1.registerMsgHandler("TestPointerTypes", mh.TestPointerTypesHandler);
     svc1.start();
 
-    NiceService svc2("Service2");
+    Chirp svc2("Service2");
     svc2.registerMsgHandler("TestFloatingTypes", mh.TestFloatingTypesHandler);
     svc2.registerMsgHandler("TestBoolTypes", mh.TestBoolTypesHandler);
     svc2.registerMsgHandler("TestVectorTypes", mh.TestVectorTypesHandler);

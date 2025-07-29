@@ -1,4 +1,4 @@
-# Nice Services
+# Chirp
 
 # Architecture and Design Document
 
@@ -20,13 +20,13 @@ Software architects are often faced with the decision of choosing between a mult
 
 In contrast, a multi-threaded design can offer a compelling trade-off. By leveraging lightweight threads within a single process boundary, systems can achieve parallelism with lower latency, as there's no need for data serialization or security overhead typically required in cross-process communication. However, this approach may reduce flexibility in fault isolation, making the system less resilient to individual thread failures.
 
-Nice Services is a project that aims at providing a very light weight and simple API written in C++ for C++ developers that alllows for inter thread communication. 
+Chirp is a project that aims at providing a very light weight and simple API written in C++ for C++ developers that alllows for inter thread communication. 
 
 ## Project Overview
 
-The API for Nice Services enables developers to create services as individual threads. Each service runs in its own thread and is responsible for handling multiple tasks. Tasks are registered to a service using the `registerMsgHandler(..)` function that associates a unique message to a task. Once registered, these tasks are triggered when the service receives corresponding messages through the `postMsg(..)` call. Developers must ensure that the order and data types of parameters remain consistent between the `registerMsgHandler(..)` and `postMsg(..)` calls. If there is a mismatch a message will be provided in the debug log. Internally, each service manages an event queue to handle and dispatch messages to the appropriate task handlers. The tasks registered for a service are gauranteed to run on the same thread and in the order the messages came in. Hence all the tasks for a service are thread safe.
+The API for Chirp enables developers to create services as individual threads. Each service runs in its own thread and is responsible for handling multiple tasks. Tasks are registered to a service using the `registerMsgHandler(..)` function that associates a unique message to a task. Once registered, these tasks are triggered when the service receives corresponding messages through the `postMsg(..)` call. Developers must ensure that the order and data types of parameters remain consistent between the `registerMsgHandler(..)` and `postMsg(..)` calls. If there is a mismatch a message will be provided in the debug log. Internally, each service manages an event queue to handle and dispatch messages to the appropriate task handlers. The tasks registered for a service are gauranteed to run on the same thread and in the order the messages came in. Hence all the tasks for a service are thread safe.
 
-Nice Services is a C++20 library that provides a lightweight, thread-safe message-passing framework for building concurrent services. The framework enables developers to create services that communicate through asynchronous message passing, with support for type-safe message handlers and flexible argument passing.
+Chirp is a C++20 library that provides a lightweight, thread-safe message-passing framework for building concurrent services. The framework enables developers to create services that communicate through asynchronous message passing, with support for type-safe message handlers and flexible argument passing.
 
 ### Key Features
 - **Asynchronous Message Passing**: Services communicate through typed messages that are fast.
@@ -35,7 +35,7 @@ Nice Services is a C++20 library that provides a lightweight, thread-safe messag
 - **Flexible Argument Passing**: Support for various C++ data types including containers. Parameters can be passed directly to the API's instead of containerising them. 
 - **Graceful Shutdown Of Services**: Controlled service termination.
 - **Logging Integration**: Debugging support has been provided with the help of a custom built thread-safe logging mechanism.
-- **External Dependancies**: The only external library that nice-services depends upon are the standard libraries. 
+- **External Dependancies**: The only external library that chirp depends upon are the standard libraries. 
 
 ## System Architecture
 
@@ -50,9 +50,9 @@ The system follows a layered architecture with clear separation of concerns:
 └─────────────────────────────────────────────────────────────┘
                               │
 ┌─────────────────────────────────────────────────────────────┐
-│                    NiceService Layer                        │
+│                    ChirpService Layer                        │
 │  ┌────────────────────────────────────────────────────────┐ │
-│  │              NiceService                               │ │
+│  │              ChirpService                               │ │
 │  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────┐ │ │
 │  │  │ Message     │  │ Thread      │  │ Logger          │ │ │
 │  │  │ Handler     │  │ Management  │  │ Integration     │ │ │
@@ -64,7 +64,7 @@ The system follows a layered architecture with clear separation of concerns:
 ┌─────────────────────────────────────────────────────────────┐
 │                    Threading Layer                          │
 │  ┌────────────────────────────────────────────────────────┐ │
-│  │              NiceThread                                │ │
+│  │              ChirpThread                                │ │
 │  │  ┌───────────────────────────────────────────────────┐ │ │
 │  │  │              MessageLoop                          │ │ │
 │  │  │  ┌─────────────┐  ┌─────────────┐  ┌────────────┐ │ │ │
@@ -80,7 +80,7 @@ The system follows a layered architecture with clear separation of concerns:
 
 ## Threading Model
 
-The main thread instantiates a `NiceService`, which in turn spawns a dedicated service thread equipped with its own message queue. The main thread registers a message handler with this service. Any thread with access to the `NiceService` instance can post messages via the `postMsg(..)` method. It is essential to maintain the correct parameter order and data types when posting messages; mismatches will trigger messages in the logs. The system supports both asynchronous and synchronous message posting. Asynchronous messages are posted with `postMsg` and processed in FIFO order, while synchronous messages posted with `syncMsg` block the caller until the handler completes.
+The main thread instantiates a `ChirpService`, which in turn spawns a dedicated service thread equipped with its own message queue. The main thread registers a message handler with this service. Any thread with access to the `ChirpService` instance can post messages via the `postMsg(..)` method. It is essential to maintain the correct parameter order and data types when posting messages; mismatches will trigger messages in the logs. The system supports both asynchronous and synchronous message posting. Asynchronous messages are posted with `postMsg` and processed in FIFO order, while synchronous messages posted with `syncMsg` block the caller until the handler completes.
 
 Once a message is posted, it is enqueued in the service’s message queue. When the service thread is idle, it dequeues the next message and dispatches the corresponding handler. This ensures all handlers are executed within the context of the service thread. After a handler finishes execution, the service proceeds to the next message in the queue, guaranteeing that tasks are processed sequentially, without concurrency. This continues till the thread is empty. In this state the thread is merely waiting on a mutex.
 
@@ -136,7 +136,7 @@ class Message {
 
 ## Logging System
 
-Debugging in Nice Services can be enabled by setting the environment variable `NICE_SERVICE_DEBUG=1`. When enabled, a log file named `nice_log.txt` is created in the `/tmp` directory each time a process using Nice Services starts. Note that this environment variable must be set **before** the process is launched. With each startup, any existing log file is overwritten.
+Debugging in Chirp can be enabled by setting the environment variable `NICE_SERVICE_DEBUG=1`. When enabled, a log file named `nice_log.txt` is created in the `/tmp` directory each time a process using Chirp starts. Note that this environment variable must be set **before** the process is launched. With each startup, any existing log file is overwritten.
 
 The logger is implemented as a singleton, allowing it to be accessed safely from any thread.
 
@@ -220,6 +220,6 @@ nice-services/
 
 ## Conclusion
 
-Nice Services provides a robust foundation for building concurrent, message-driven applications in C++. The architecture emphasizes simplicity, type safety, and performance while maintaining flexibility for future enhancements. The modular design allows for easy extension and customization to meet specific application requirements.
+Chirp provides a robust foundation for building concurrent, message-driven applications in C++. The architecture emphasizes simplicity, type safety, and performance while maintaining flexibility for future enhancements. The modular design allows for easy extension and customization to meet specific application requirements.
 
 The framework's thread-safe message passing system, combined with its template-based type safety, makes it suitable for a wide range of concurrent programming scenarios, from simple service communication to complex distributed systems. 

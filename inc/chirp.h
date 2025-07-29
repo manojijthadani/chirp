@@ -1,11 +1,11 @@
 /**
  * @file nice_service.h
- * @brief Main service interface for Nice Services framework
- * @author Nice Services Team (Manoj IJ Thadani)
+ * @brief Main service interface for Chirp framework
+ * @author Chirp Team (Manoj IJ Thadani)
  * @date 2025
  * @version 1.0
  * 
- * This file defines the NiceService class, which provides a high-level interface
+ * This file defines the Chirp class, which provides a high-level interface
  * for creating and managing services with message-passing capabilities.
  * The class uses template metaprogramming to provide type-safe message handling.
  */
@@ -23,12 +23,12 @@
 // Note: Forward declaration to prevent the inclusion of any private headers.
 // This keeps the spirit of data abstraction, so API consumer shall include only
 // this one public header file.
-class NiceServiceImpl;
+class ChirpImpl;
 
 /**
- * @brief Main service class for Nice Services framework
+ * @brief Main service class for Chirp framework
  * 
- * NiceService provides a high-level interface for creating services that can
+ * Chirp provides a high-level interface for creating services that can
  * handle typed messages asynchronously. Each service runs in its own thread
  * and processes messages through registered handlers.
  * 
@@ -37,30 +37,30 @@ class NiceServiceImpl;
  * 
  * @example
  * @code
- * NiceService service("MyService");
+ * Chirp service("MyService");
  * service.registerMsgHandler("TestMessage", myHandler);
  * service.start();
  * service.postMsg("TestMessage", 42, "hello");
  * service.shutdown();
  * @endcode
  */
-class NiceService {
+class Chirp {
 public:
     /**
      * @brief Default constructor
      */
-    NiceService() = default;
+    Chirp() = default;
     
     /**
      * @brief Default destructor
      */
-    ~NiceService() = default;
+    ~Chirp() = default;
 
     /**
      * @brief Constructor with service name
      * @param service_name The name of the service for identification and logging
      */
-    explicit NiceService(const std::string& service_name);
+    explicit Chirp(const std::string& service_name);
     
     /**
      * @brief Start the service
@@ -117,7 +117,7 @@ public:
     }
 
     /**
-     * @brief Get the version of the NiceService API
+     * @brief Get the version of the Chirp API
      * @return The version string (e.g., "1.0")
      */
     static const std::string& getVersion();
@@ -199,7 +199,7 @@ private:
      */
     void getCbMap(std::map<std::string, std::function<void(std::vector<std::any>)>>*& funcMap);
     
-    NiceServiceImpl* _impl; ///< Implementation pointer
+    ChirpImpl* _impl; ///< Implementation pointer
 
     /**
      * @brief Helper to build message and argument vector, then enqueue

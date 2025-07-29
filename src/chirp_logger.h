@@ -5,12 +5,12 @@
 #include <mutex>
 #include <cstdlib>
 
-class NiceLogger {
+class ChirpLogger {
 public:
-    static NiceLogger& instance(const std::string& serviceName = "default_service");
+    static ChirpLogger& instance(const std::string& serviceName = "default_service");
 
     template<typename T>
-    NiceLogger& operator<<(const T& value) {
+    ChirpLogger& operator<<(const T& value) {
         std::lock_guard<std::mutex> lock(_mtx);
         if (_ofs.is_open()) {
             _buffer << value;
@@ -19,15 +19,15 @@ public:
     }
 
     // Overload for std::endl
-    NiceLogger& operator<<(std::ostream& (*manip)(std::ostream&));
+    ChirpLogger& operator<<(std::ostream& (*manip)(std::ostream&));
 
     void setServiceName(const std::string& serviceName);
 
 private:
-    NiceLogger(const std::string& filename = "nice_log.txt");
-    ~NiceLogger();
-    NiceLogger(const NiceLogger&) = delete;
-    NiceLogger& operator=(const NiceLogger&) = delete;
+    ChirpLogger(const std::string& filename = "nice_log.txt");
+    ~ChirpLogger();
+    ChirpLogger(const ChirpLogger&) = delete;
+    ChirpLogger& operator=(const ChirpLogger&) = delete;
 
     void flush();
     std::ofstream _ofs;

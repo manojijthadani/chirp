@@ -7,7 +7,7 @@
 #include <chrono>
 
 #include "message_loop.h"
-#include "nice_logger.h"
+#include "chirp_logger.h"
 #include "message.h"
 
 void MessageLoop::spin() {
@@ -16,7 +16,7 @@ void MessageLoop::spin() {
     _empty_mtx.lock();
     while (!st_thread) {
         if (_message_queue.empty()) {
-            NiceLogger::instance(_service_name) << "waiting. MsgQ empty." << std::endl;
+            ChirpLogger::instance(_service_name) << "waiting. MsgQ empty." << std::endl;
             _empty_mtx.lock();
         }
         _task_exec_mtx.lock();
@@ -29,7 +29,7 @@ void MessageLoop::spin() {
             m->getArgs(args);
             auto it = _functions.find(msg);
             if (it != _functions.end()) {
-                NiceLogger::instance(_service_name) << "Dispatching handler for "
+                ChirpLogger::instance(_service_name) << "Dispatching handler for "
                                                     << msg << " with " << args.size() << " arguments" << std::endl;
                 it->second(args);
             }
@@ -43,7 +43,7 @@ void MessageLoop::spin() {
         st_thread = _stop_thread;
         _task_exec_mtx.unlock();
     }
-    NiceLogger::instance(_service_name) << "Spin loop stopped." << std::endl;
+    ChirpLogger::instance(_service_name) << "Spin loop stopped." << std::endl;
 }
 
 void MessageLoop::enqueue(Message* m) {
@@ -58,16 +58,16 @@ void MessageLoop::enqueueInternal(Message* m, Message::MessageType type) {
     if (!_stop_thread) {
         std::string msg;
         m->getMessage(msg);
-        NiceLogger::instance(_service_name) << "Enqueing message " << msg << std::endl;
+        ChirpLogger::instance(_service_name) << "Enqueing message " << msg << std::endl;
         _message_queue.push(m);
         if (!_message_queue.empty()) {
             _empty_mtx.unlock();
         }
         if (type == Message::MessageType::SYNC) {
-            NiceLogger::instance(_service_name) 
+            ChirpLogger::instance(_service_name) 
             << "Blocking caller thread on a sync call " << std::endl;
             m->sync_wait();
-            NiceLogger::instance(_service_name) 
+            ChirpLogger::instance(_service_name) 
             << "Unblocking caller thread on a sync call " << std::endl;
         }
     }
@@ -87,7 +87,7 @@ void MessageLoop::setStopThread(bool st) {
     _task_exec_mtx.unlock();
     _empty_mtx.unlock();
     if (st) {
-        NiceLogger::instance(_service_name) << "Main stopping thread." << std::endl;
+        ChirpLogger::instance(_service_name) << "Main stopping thread." << std::endl;
     }
 }
 

@@ -3,13 +3,13 @@
 #include <thread>
 #include "message_loop.h"
 
-class NiceThread {
+class ChirpThread {
 
 public:
-    NiceThread() = default;
-    ~NiceThread() = default;
+    ChirpThread() = default;
+    ~ChirpThread() = default;
 
-    explicit NiceThread(const std::string& service_name);
+    explicit ChirpThread(const std::string& service_name);
 
     void startThread();
     void stopThread();
