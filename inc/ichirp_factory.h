@@ -43,16 +43,16 @@ public:
     /**
      * @brief Create a new Chirp service instance
      * @param service_name The name of the service to create
-     * @return Shared pointer to the created Chirp service
+     * @return Pointer to the created Chirp service
      */
-    virtual std::shared_ptr<Chirp> createService(const std::string& service_name) = 0;
+    virtual Chirp* createService(const std::string& service_name) = 0;
 
     /**
      * @brief Get an existing service by name
      * @param service_name The name of the service to retrieve
-     * @return Shared pointer to the service if it exists, nullptr otherwise
+     * @return Pointer to the service if it exists, nullptr otherwise
      */
-    virtual std::shared_ptr<Chirp> getService(const std::string& service_name) = 0;
+    virtual Chirp* getService(const std::string& service_name) = 0;
 
     /**
      * @brief Destroy a service by name

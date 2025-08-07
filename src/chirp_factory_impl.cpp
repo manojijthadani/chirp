@@ -18,30 +18,30 @@ ChirpFactory& ChirpFactory::getInstance() {
     return instance;
 }
 
-std::shared_ptr<Chirp> ChirpFactory::createService(const std::string& service_name) {
+Chirp* ChirpFactory::createService(const std::string& service_name) {
     std::lock_guard<std::mutex> lock(_mutex);
     
     // Check if service already exists
     auto it = _services.find(service_name);
     if (it != _services.end()) {
         ChirpLogger::instance("ChirpFactory") << "Service '" << service_name << "' already exists" << std::endl;
-        return it->second;
+        return it->second.get();
     }
     
     // Create new service
-    auto service = std::make_shared<Chirp>(service_name);
-    _services[service_name] = service;
+    auto service = new Chirp(service_name);
+    _services[service_name] = std::shared_ptr<Chirp>(service);
     
     ChirpLogger::instance("ChirpFactory") << "Created service '" << service_name << "'" << std::endl;
     return service;
 }
 
-std::shared_ptr<Chirp> ChirpFactory::getService(const std::string& service_name) {
+Chirp* ChirpFactory::getService(const std::string& service_name) {
     std::lock_guard<std::mutex> lock(_mutex);
     
     auto it = _services.find(service_name);
     if (it != _services.end()) {
-        return it->second;
+        return it->second.get();
     }
     
     ChirpLogger::instance("ChirpFactory") << "Service '" << service_name << "' not found" << std::endl;
