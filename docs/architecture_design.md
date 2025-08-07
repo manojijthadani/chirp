@@ -6,6 +6,7 @@
 1. [Purpose](#purpose)
 2. [Project Overview](#project-overview)
 3. [System Architecture](#system-architecture)
+4. [Factory Pattern](#factory-pattern)
 5. [Threading Model](#threading-model)
 6. [Message Passing System](#message-passing-system)
 7. [Logging System](#logging-system)
@@ -35,6 +36,7 @@ Chirp is a C++20 library that provides a lightweight, thread-safe message-passin
 - **Flexible Argument Passing**: Support for various C++ data types including containers. Parameters can be passed directly to the API's instead of containerising them. 
 - **Graceful Shutdown Of Services**: Controlled service termination.
 - **Logging Integration**: Debugging support has been provided with the help of a custom built thread-safe logging mechanism.
+- **Factory Pattern**: Centralized service creation and lifecycle management through the ChirpFactory singleton.
 - **External Dependancies**: The only external library that chirp depends upon are the standard libraries. 
 
 ## System Architecture
@@ -143,30 +145,38 @@ The logger is implemented as a singleton, allowing it to be accessed safely from
 ### Usage Pattern
 
 ```cpp
-NiceLogger::instance("ServiceName") << "Log message" << std::endl;
+ChirpLogger::instance("ServiceName") << "Log message" << std::endl;
 ```
 
 ## API Design
 
 ### Service Creation and Management
 ```cpp
-// Create service
-NiceService service("MyService");
+// Direct service creation
+Chirp service("MyService");
+
+// Factory-based service creation
+auto& factory = ChirpFactory::getInstance();
+auto service = factory.createService("ServiceCreatedByFactory");
 
 // Register message handlers
-service.registerMsgHandler("MessageType", handlerFunction);
+service.registerMsgHandler("Message", handlerFunction);
 
 // Start service
 service.start();
 
 // Post asynchronous messages
-service.postMsg("MessageType", arg1, arg2, arg3);
+service.postMsg("Message", arg1, arg2, arg3);
 
 // Post synchronous messages and wait for completion
-service.syncMsg("MessageType", arg1, arg2, arg3);
+service.syncMsg("Message", arg1, arg2, arg3);
 
 // Shutdown service
-service.shutdown(ShutdownType::NORMAL);
+service.shutdown();
+
+// Factory-based service management
+factory.destroyService("MyService");
+factory.shutdownAllServices();
 ```
 
 ### Synchronous Message Handling
@@ -203,12 +213,110 @@ service.registerMsgHandler("MessageType", handler);
 ```
 nice-services/
 ├── CMakeLists.txt          # Root build configuration
-├── inc/                    # Header files
+├── inc/                    # Public header files
 ├── src/                    # Implementation files
 ├── tests/                  # Test files
 ├── example/                # Usage examples
 └── docs/                   # Documentation
 ```
+
+## Factory Pattern
+
+The ChirpFactory provides a centralized approach to creating and managing Chirp services through the Factory pattern. This design pattern ensures controlled service creation, centralized lifecycle management, and provides a clean interface for service instantiation.
+
+### Factory Architecture
+
+The factory system consists of two main components:
+
+1. **IChirpFactory Interface** (`inc/ichirp_factory.h`): Abstract interface defining the contract for factory implementations
+2. **ChirpFactory Implementation** (`src/chirp_factory.h`): Concrete singleton implementation of the factory interface
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Factory Layer                            │
+│  ┌────────────────────────────────────────────────────────┐ │
+│  │              ChirpFactory                              │ │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────┐ │ │
+│  │  │ Service     │  │ Service     │  │ Service         │ │ │
+│  │  │ Creation    │  │ Lifecycle   │  │ Registry        │ │ │
+│  │  │ Management  │  │ Management  │  │                 │ │ │
+│  │  └─────────────┘  └─────────────┘  └─────────────────┘ │ │
+│  └────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+                              │
+┌─────────────────────────────────────────────────────────────┐
+│                    Service Layer                            │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌──────────────┐ │
+│  │   Service 1     │  │   Service 2     │  │   Service N  │ │
+│  └─────────────────┘  └─────────────────┘  └──────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Factory Features
+
+- **Singleton Pattern**: Ensures only one factory instance exists across the application
+- **Thread Safety**: All factory operations are protected by mutex locks
+- **Service Registry**: Maintains a map of all created services for lifecycle management
+- **Centralized Control**: Provides unified interface for service creation, retrieval, and destruction
+- **Interface Abstraction**: Supports dependency injection and testability through the IChirpFactory interface
+
+### Factory Usage Patterns
+
+```cpp
+// Get the singleton factory instance
+auto& factory = ChirpFactory::getInstance();
+
+// Create services through the factory
+auto service1 = factory.createService("LoggerService");
+auto service2 = factory.createService("NetworkService");
+
+// Register handlers and start services
+service1->registerMsgHandler("Log", logHandler);
+service1->start();
+
+// Retrieve existing services
+auto existingService = factory.getService("LoggerService");
+
+// Get service count
+size_t count = factory.getServiceCount();
+
+// Destroy specific service
+factory.destroyService("NetworkService");
+
+// Shutdown all services
+factory.shutdownAllServices();
+```
+
+### Interface-Based Design
+
+The factory system supports interface-based programming, allowing for different factory implementations:
+
+```cpp
+// Using the interface (polymorphic)
+IChirpFactory* factory_interface = &ChirpFactory::getInstance();
+auto service = factory_interface->createService("MyService");
+
+// Dependency injection example
+class ServiceManager {
+private:
+    IChirpFactory* _factory;
+public:
+    ServiceManager(IChirpFactory* factory) : _factory(factory) {}
+    void createAndManageServices() {
+        auto service = _factory->createService("ManagedService");
+        // ... service management logic
+    }
+};
+```
+
+### Benefits of Factory Pattern
+
+1. **Centralized Management**: All service creation and lifecycle operations are managed in one place
+2. **Resource Control**: Prevents service proliferation and ensures proper cleanup
+3. **Testability**: Interface abstraction allows for easy mocking in unit tests
+4. **Extensibility**: New factory implementations can be created without changing client code
+5. **Thread Safety**: Built-in synchronization ensures safe concurrent access
+6. **Memory Management**: Automatic cleanup of services when factory is destroyed
 
 ## Testing Strategy
 

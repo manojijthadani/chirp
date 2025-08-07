@@ -1,7 +1,7 @@
 /**
- * @file nice_service.h
+ * @file chirp.h
  * @brief Main service interface for Chirp framework
- * @author Chirp Team (Manoj IJ Thadani)
+ * @author Chirp Team 
  * @date 2025
  * @version 1.0
  * 
