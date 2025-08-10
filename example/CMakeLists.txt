@@ -1,4 +1,4 @@
-add_executable(chirp-test main.cpp)
+add_executable(chirp-test chirp_test.cpp)
 add_executable(chirp-demo chirp_example.cpp)
 add_executable(chirp-factory-demo factory_example.cpp)
 
