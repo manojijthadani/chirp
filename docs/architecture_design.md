@@ -117,6 +117,43 @@ sequenceDiagram
 
 ## Message Passing System
 
+### Message Handler Interface
+
+The message handler system has been refactored to provide a more object-oriented approach. The new interface exclusively supports member function handlers bound to object instances, offering several advantages:
+
+#### Handler Registration Pattern
+```cpp
+class ServiceHandlers {
+public:
+    void asyncHandler(const std::string& message) {
+        // Can access instance data and state
+        std::cout << "Processing: " << message << std::endl;
+    }
+    
+    void syncHandler(const std::string& message, int value) {
+        // Can access instance methods and members
+        processMessage(message, value);
+    }
+    
+private:
+    void processMessage(const std::string& msg, int val) {
+        // Private helper methods accessible to handlers
+    }
+};
+
+// Usage
+ServiceHandlers handlers;
+service.registerMsgHandler("AsyncMessage", &handlers, &ServiceHandlers::asyncHandler);
+service.registerMsgHandler("SyncMessage", &handlers, &ServiceHandlers::syncHandler);
+```
+
+#### Benefits of New Interface
+1. **Object-Oriented Design**: Better encapsulation and data hiding
+2. **Stateful Handlers**: Handlers can maintain state between invocations
+3. **Type Safety**: Compile-time checking of method signatures
+4. **Consistent API**: All handlers follow the same registration pattern
+5. **Memory Management**: Clear ownership of handler objects
+
 ### Message Structure
 ```cpp
 class Message {
@@ -159,8 +196,9 @@ Chirp service("MyService");
 auto& factory = ChirpFactory::getInstance();
 auto service = factory.createService("ServiceCreatedByFactory");
 
-// Register message handlers
-service.registerMsgHandler("Message", handlerFunction);
+// Create handler instance and register message handlers
+MessageHandlers handlers;
+service.registerMsgHandler("Message", &handlers, &MessageHandlers::handlerMethod);
 
 // Start service
 service.start();
@@ -189,12 +227,20 @@ The `syncMsg` API allows a thread to post a message to a service and block until
 
 ### Message Handler Registration
 ```cpp
-// Function signature must match expected arguments
-void handler(int a, std::string b, std::vector<int> c);
+// Handler class with methods that match expected arguments
+class MessageHandlers {
+public:
+    void handler(int a, std::string b, std::vector<int> c);
+};
 
-// Registration
-service.registerMsgHandler("MessageType", handler);
+// Create handler instance
+MessageHandlers handlers;
+
+// Registration using object instance and member method pointer
+service.registerMsgHandler("MessageType", &handlers, &MessageHandlers::handler);
 ```
+
+**Note**: The interface only supports member function handlers bound to object instances. This provides better encapsulation and allows handlers to access instance state and data.
 
 ### Supported Data Types
 - **Primitive Types**: int, float, double, bool, char, etc.
@@ -270,8 +316,9 @@ auto& factory = ChirpFactory::getInstance();
 auto service1 = factory.createService("LoggerService");
 auto service2 = factory.createService("NetworkService");
 
-// Register handlers and start services
-service1->registerMsgHandler("Log", logHandler);
+// Create handler instances and register handlers
+LogHandlers logHandlers;
+service1->registerMsgHandler("Log", &logHandlers, &LogHandlers::logHandler);
 service1->start();
 
 // Retrieve existing services
@@ -330,4 +377,4 @@ public:
 
 Chirp provides a robust foundation for building concurrent, message-driven applications in C++. The architecture emphasizes simplicity, type safety, and performance while maintaining flexibility for future enhancements. The modular design allows for easy extension and customization to meet specific application requirements.
 
-The framework's thread-safe message passing system, combined with its template-based type safety, makes it suitable for a wide range of concurrent programming scenarios, from simple service communication to complex distributed systems. 
+The framework's thread-safe message passing system, combined with its template-based type safety and object-oriented message handler interface, makes it suitable for a wide range of concurrent programming scenarios, from simple service communication to complex distributed systems. The recent refactoring to member function-based handlers provides better encapsulation and state management capabilities. 

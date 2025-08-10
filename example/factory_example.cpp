@@ -7,15 +7,15 @@
 
 class FactoryServiceHandlers {
 public:
-    static void GreetingHandler(const std::string& name) {
+    void GreetingHandler(const std::string& name) {
         std::cout << "Hello, " << name << "! Welcome to ChirpFactory!" << std::endl;
     }
     
-    static void StatusHandler(const std::string& service_name, int status_code) {
+    void StatusHandler(const std::string& service_name, int status_code) {
         std::cout << "Service '" << service_name << "' status: " << status_code << std::endl;
     }
     
-    static void ShutdownHandler() {
+    void ShutdownHandler() {
         std::cout << "Service is shutting down gracefully..." << std::endl;
     }
 };
@@ -39,15 +39,18 @@ int main() {
     // Demonstrate using the interface for service creation
     auto service4 = factory_interface->createService("InterfaceService");
     
+    // Create handler instance
+    FactoryServiceHandlers handlers;
+    
     // Register message handlers for each service
-    service1->registerMsgHandler("Greeting", FactoryServiceHandlers::GreetingHandler);
-    service1->registerMsgHandler("Status", FactoryServiceHandlers::StatusHandler);
+    service1->registerMsgHandler("Greeting", &handlers, &FactoryServiceHandlers::GreetingHandler);
+    service1->registerMsgHandler("Status", &handlers, &FactoryServiceHandlers::StatusHandler);
     
-    service2->registerMsgHandler("Greeting", FactoryServiceHandlers::GreetingHandler);
-    service2->registerMsgHandler("Shutdown", FactoryServiceHandlers::ShutdownHandler);
+    service2->registerMsgHandler("Greeting", &handlers, &FactoryServiceHandlers::GreetingHandler);
+    service2->registerMsgHandler("Shutdown", &handlers, &FactoryServiceHandlers::ShutdownHandler);
     
-    service3->registerMsgHandler("Status", FactoryServiceHandlers::StatusHandler);
-    service4->registerMsgHandler("Greeting", FactoryServiceHandlers::GreetingHandler);
+    service3->registerMsgHandler("Status", &handlers, &FactoryServiceHandlers::StatusHandler);
+    service4->registerMsgHandler("Greeting", &handlers, &FactoryServiceHandlers::GreetingHandler);
     
     // Start all services
     service1->start();

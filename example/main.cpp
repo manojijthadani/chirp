@@ -13,14 +13,14 @@ public:
     ServiceMsgHandlers() = default;
     ~ServiceMsgHandlers() = default;
 
-    static void TestIntegerTypesHandler(int a, short b, long c, long long d);
-    static void TestFloatingTypesHandler(float a, double b, long double c);
-    static void TestStringTypesHandler(std::string a);
-    static void TestBoolTypesHandler(bool a);
-    static void TestCharTypesHandler(char a);
-    static void TestVoidTypesHandler();
-    static void TestPointerTypesHandler(int* a);
-    static void TestVectorTypesHandler(std::vector<int> a);
+    void TestIntegerTypesHandler(int a, short b, long c, long long d);
+    void TestFloatingTypesHandler(float a, double b, long double c);
+    void TestStringTypesHandler(std::string a);
+    void TestBoolTypesHandler(bool a);
+    void TestCharTypesHandler(char a);
+    void TestVoidTypesHandler();
+    void TestPointerTypesHandler(int* a);
+    void TestVectorTypesHandler(std::vector<int> a);
 };
 
 void ServiceMsgHandlers::TestIntegerTypesHandler(int a, short b, long c, long long d) {
@@ -68,17 +68,17 @@ int main() {
     ServiceMsgHandlers mh;
 
     Chirp svc1("Service1");
-    svc1.registerMsgHandler("TestIntegerTypes", mh.TestIntegerTypesHandler);
-    svc1.registerMsgHandler("TestStringTypes", mh.TestStringTypesHandler);
-    svc1.registerMsgHandler("TestCharTypes", mh.TestCharTypesHandler);
-    svc1.registerMsgHandler("TestPointerTypes", mh.TestPointerTypesHandler);
+    svc1.registerMsgHandler("TestIntegerTypes", &mh, &ServiceMsgHandlers::TestIntegerTypesHandler);
+    svc1.registerMsgHandler("TestStringTypes", &mh, &ServiceMsgHandlers::TestStringTypesHandler);
+    svc1.registerMsgHandler("TestCharTypes", &mh, &ServiceMsgHandlers::TestCharTypesHandler);
+    svc1.registerMsgHandler("TestPointerTypes", &mh, &ServiceMsgHandlers::TestPointerTypesHandler);
     svc1.start();
 
     Chirp svc2("Service2");
-    svc2.registerMsgHandler("TestFloatingTypes", mh.TestFloatingTypesHandler);
-    svc2.registerMsgHandler("TestBoolTypes", mh.TestBoolTypesHandler);
-    svc2.registerMsgHandler("TestVectorTypes", mh.TestVectorTypesHandler);
-    svc2.registerMsgHandler("TestVoidTypes", mh.TestVoidTypesHandler);
+    svc2.registerMsgHandler("TestFloatingTypes", &mh, &ServiceMsgHandlers::TestFloatingTypesHandler);
+    svc2.registerMsgHandler("TestBoolTypes", &mh, &ServiceMsgHandlers::TestBoolTypesHandler);
+    svc2.registerMsgHandler("TestVectorTypes", &mh, &ServiceMsgHandlers::TestVectorTypesHandler);
+    svc2.registerMsgHandler("TestVoidTypes", &mh, &ServiceMsgHandlers::TestVoidTypesHandler);
     svc2.start();
 
     svc1.postMsg("TestIntegerTypes", 2, (short)100, (long)1000, (long long)10000);

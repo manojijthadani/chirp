@@ -85,32 +85,55 @@ public:
 
     /**
      * @brief Register a message handler
-     * @tparam Ret Return type of the handler function
-     * @tparam Args Variadic template for handler function arguments
+     * @tparam Obj Type of the object
+     * @tparam Ret Return type of the handler method
+     * @tparam Args Variadic template for handler method arguments
      * @param msgName The message name to register the handler for
-     * @param func Pointer to the handler function
+     * @param object Pointer to the object instance
+     * @param method Pointer to the member method
      * 
      * Registers a typed message handler that will be called when a message
-     * with the specified name is posted. The function signature must match
+     * with the specified name is posted. The method signature must match
      * the arguments passed to postMsg().
      * 
      * @note Handlers are executed in the service thread in FIFO order
      */
-    template<typename Ret, typename... Args>
-    void registerMsgHandler(std::string msgName, Ret(*func)(Args...)) {
+    template<typename Obj, typename Ret, typename... Args>
+    void registerMsgHandler(std::string msgName, Obj* object, Ret(Obj::*method)(Args...)) {
         std::map<std::string, std::function<void(std::vector<std::any>)>>* functions = nullptr;
         getCbMap(functions);
-        (*functions)[msgName] = [this, func](std::vector<std::any> args) {
+        (*functions)[msgName] = [this, object, method](std::vector<std::any> args) {
             if (args.size() < sizeof...(Args) + 1) {
-                std::cerr << this->getServiceName() 
+                std::cerr << this->getServiceName()
                           << " Argument count mismatch (expected at least one extra).\n";
                 return;
             }
             std::vector<std::any> slicedArgs(args.begin() + 1, args.end());
             try {
-                helper(func, slicedArgs, std::index_sequence_for<Args...>{});
+                helper(object, method, slicedArgs, std::index_sequence_for<Args...>{});
             } catch (const std::bad_any_cast& e) {
-                std::cerr << this->getServiceName() 
+                std::cerr << this->getServiceName()
+                          << " Argument type mismatch: " << e.what() << '\n';
+            }
+        };
+    }
+
+    // Register a const member function handler on an object instance
+    template<typename Obj, typename Ret, typename... Args>
+    void registerMsgHandler(std::string msgName, Obj* object, Ret(Obj::*method)(Args...) const) {
+        std::map<std::string, std::function<void(std::vector<std::any>)>>* functions = nullptr;
+        getCbMap(functions);
+        (*functions)[msgName] = [this, object, method](std::vector<std::any> args) {
+            if (args.size() < sizeof...(Args) + 1) {
+                std::cerr << this->getServiceName()
+                          << " Argument count mismatch (expected at least one extra).\n";
+                return;
+            }
+            std::vector<std::any> slicedArgs(args.begin() + 1, args.end());
+            try {
+                helper(object, method, slicedArgs, std::index_sequence_for<Args...>{});
+            } catch (const std::bad_any_cast& e) {
+                std::cerr << this->getServiceName()
                           << " Argument type mismatch: " << e.what() << '\n';
             }
         };
@@ -157,22 +180,33 @@ private:
 
     /**
      * @brief Helper function to call registered handlers with typed arguments
-     * @tparam Ret Return type of the handler function
-     * @tparam Args Types of handler function arguments
+     * @tparam Obj Type of the object
+     * @tparam Ret Return type of the handler method
+     * @tparam Args Types of handler method arguments
      * @tparam I Index sequence for argument unpacking
-     * @param func Pointer to the handler function
+     * @param object Pointer to the object instance
+     * @param method Pointer to the member method
      * @param args Vector of arguments to pass to the handler
      * @param seq Index sequence for unpacking arguments
      */
-    template<typename Ret, typename... Args, size_t... I>
-    void helper(Ret(*func)(Args...), const std::vector<std::any>& args, std::index_sequence<I...>) {
+    template<typename Obj, typename Ret, typename... Args, size_t... I>
+    void helper(Obj* object, Ret(Obj::*method)(Args...), const std::vector<std::any>& args, std::index_sequence<I...>) {
         try {
-            func(std::any_cast<Args>(args[I])...);
+            (object->*method)(std::any_cast<Args>(args[I])...);
         } catch (const std::bad_any_cast& e) {
             std::cerr << this->getServiceName() << " Argument type mismatch: " << e.what() << "\n";
         }
     }
-    
+
+    template<typename Obj, typename Ret, typename... Args, size_t... I>
+    void helper(Obj* object, Ret(Obj::*method)(Args...) const, const std::vector<std::any>& args, std::index_sequence<I...>) {
+        try {
+            (object->*method)(std::any_cast<Args>(args[I])...);
+        } catch (const std::bad_any_cast& e) {
+            std::cerr << this->getServiceName() << " Argument type mismatch: " << e.what() << "\n";
+        }
+    }
+
     /**
      * @brief Enqueue a message for processing
      * @param msgName The message name
