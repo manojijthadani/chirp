@@ -84,6 +84,17 @@ The system follows a layered architecture with clear separation of concerns:
 
 The main thread instantiates a `ChirpService`, which in turn spawns a dedicated service thread equipped with its own message queue. The main thread registers a message handler with this service. Any thread with access to the `ChirpService` instance can post messages via the `postMsg(..)` method. It is essential to maintain the correct parameter order and data types when posting messages; mismatches will trigger messages in the logs. The system supports both asynchronous and synchronous message posting. Asynchronous messages are posted with `postMsg` and processed in FIFO order, while synchronous messages posted with `syncMsg` block the caller until the handler completes.
 
+### Thread State Management
+
+The ChirpThread maintains a state machine to ensure proper message handling:
+
+- **NOT_STARTED**: Initial state, no messages can be posted
+- **STARTED**: Thread has been created and started, messages can be posted
+- **RUNNING**: Thread is actively processing messages, messages can be posted
+- **STOPPED**: Thread has been stopped, no messages can be posted
+
+Messages can only be enqueued when the thread is in STARTED or RUNNING state. Attempting to post messages in other states will return `ChirpError::INVALID_SERVICE_STATE`.
+
 Once a message is posted, it is enqueued in the service’s message queue. When the service thread is idle, it dequeues the next message and dispatches the corresponding handler. This ensures all handlers are executed within the context of the service thread. After a handler finishes execution, the service proceeds to the next message in the queue, guaranteeing that tasks are processed sequentially, without concurrency. This continues till the thread is empty. In this state the thread is merely waiting on a mutex.
 
 Messages can be registered with the service at any time, even after the service has been started. If messages are posted on a service have no registered handlers, the posted messages are dropped on the floor.
@@ -187,14 +198,56 @@ ChirpLogger::instance("ServiceName") << "Log message" << std::endl;
 
 ## API Design
 
+### Error Handling
+
+The Chirp framework provides comprehensive error handling through the `ChirpError::Error` enum class. All public interfaces that can fail now include error parameters to provide detailed information about what went wrong.
+
+#### Error Types
+- **Service Errors**: Creation, lifecycle, and state management failures
+- **Resource Errors**: Memory allocation and thread creation failures
+- **Message Errors**: Handler registration and message processing failures
+- **Message Posting Errors**: Memory allocation failures when posting messages
+- **Thread State Errors**: Attempting to post messages when thread is not in STARTED or RUNNING state
+- **System Errors**: Internal errors, timeouts, and configuration issues
+
+#### Error Handling Pattern
+```cpp
+ChirpError::Error error;
+auto service = factory.createService("MyService", error);
+    if (error != ChirpError::SUCCESS) {
+        std::cout << "Service creation failed: " << ChirpError::errorToString(error) << std::endl;
+        // Handle the error appropriately
+        return;
+    }
+// Service created successfully, continue with normal operation
+```
+
+**Thread State Validation**: Messages can only be posted when the service thread is in STARTED or RUNNING state. Attempting to post messages before the service is started or after it's stopped will return `ChirpError::INVALID_SERVICE_STATE`.
+
+#### Benefits
+- **Robust Error Handling**: All allocation failures are detected using `std::nothrow` and null pointer checks
+- **Detailed Error Information**: Specific error codes for different failure modes
+- **Graceful Degradation**: Services fail gracefully without crashing the application
+- **Debugging Support**: Clear error messages help identify and resolve issues
+
+
 ### Service Creation and Management
 ```cpp
-// Direct service creation
-Chirp service("MyService");
+// Direct service creation with error handling
+ChirpError::Error error;
+Chirp service("MyService", error);
+if (error != ChirpError::SUCCESS) {
+    // Handle creation failure
+    std::cout << "Service creation failed: " << ChirpError::errorToString(error);
+}
 
-// Factory-based service creation
+// Factory-based service creation with error handling
 auto& factory = ChirpFactory::getInstance();
-auto service = factory.createService("ServiceCreatedByFactory");
+auto service = factory.createService("ServiceCreatedByFactory", error);
+if (error != ChirpError::SUCCESS) {
+    // Handle creation failure
+    std::cout << "Service creation failed: " << ChirpError::errorToString(error);
+}
 
 // Create handler instance and register message handlers
 MessageHandlers handlers;
@@ -203,11 +256,19 @@ service.registerMsgHandler("Message", &handlers, &MessageHandlers::handlerMethod
 // Start service
 service.start();
 
-// Post asynchronous messages
-service.postMsg("Message", arg1, arg2, arg3);
+// Post asynchronous messages with error handling
+ChirpError::Error error = service.postMsg("Message", arg1, arg2, arg3);
+if (error != ChirpError::SUCCESS) {
+    std::cout << "Failed to post message: " << ChirpError::errorToString(error);
+    // Handle the error appropriately
+}
 
-// Post synchronous messages and wait for completion
-service.syncMsg("Message", arg1, arg2, arg3);
+// Post synchronous messages and wait for completion with error handling
+ChirpError::Error error = service.syncMsg("Message", arg1, arg2, arg3);
+if (error != ChirpError::SUCCESS) {
+    std::cout << "Failed to sync message: " << ChirpError::errorToString(error);
+    // Handle the error appropriately
+}
 
 // Shutdown service
 service.shutdown();

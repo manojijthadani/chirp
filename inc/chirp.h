@@ -18,6 +18,7 @@
 #include <string>
 #include <iostream>
 #include <sstream>
+#include "chirp_error.h"
 
 
 // Note: Forward declaration to prevent the inclusion of any private headers.
@@ -48,6 +49,8 @@ class Chirp {
 public:
     /**
      * @brief Default constructor
+     * @note This constructor is provided for backward compatibility but should not be used
+     *       for creating functional services. Use the service_name constructor instead.
      */
     Chirp() = default;
     
@@ -59,8 +62,16 @@ public:
     /**
      * @brief Constructor with service name
      * @param service_name The name of the service for identification and logging
+     * @param error Output parameter for error status
+     * 
+     * This constructor creates a new Chirp service instance. If any resource allocation
+     * fails during construction, the error parameter will be set to the appropriate
+     * error code and the service will not be fully initialized.
+     * 
+     * @note Always check the error parameter after construction to ensure the service
+     *       was created successfully before using it.
      */
-    explicit Chirp(const std::string& service_name);
+    explicit Chirp(const std::string& service_name, ChirpError::Error& error);
     
     /**
      * @brief Start the service
@@ -211,13 +222,15 @@ private:
      * @brief Enqueue a message for processing
      * @param msgName The message name
      * @param args The message arguments
+     * @return ChirpError::Error indicating success or failure
      */
-    void enqueMsg(std::string& msgName, std::vector<std::any>& args);
+    ChirpError::Error enqueMsg(std::string& msgName, std::vector<std::any>& args);
 
     /**
      * @brief Enqueue a message for synchronous processing
      * @param msgName The message name
      * @param args The message arguments
+     * @return ChirpError::Error indicating success or failure
      *
      * Enqueues a message to be processed synchronously by the service. This is
      * used internally by syncMsg to ensure the calling thread waits for the
@@ -225,7 +238,7 @@ private:
      *
      * @note This method is intended for internal use by syncMsg.
      */
-    void enqueSyncMsg(std::string& msgName, std::vector<std::any>& args);
+    ChirpError::Error enqueSyncMsg(std::string& msgName, std::vector<std::any>& args);
     
     /**
      * @brief Get the callback map for message handlers
@@ -262,6 +275,7 @@ public:
      * @tparam Args Variadic template for remaining arguments
      * @param first_arg The message name (first argument)
      * @param remaining_args The arguments to pass to the handler
+     * @return ChirpError::Error indicating success or failure
      *
      * Posts a message to the service queue. The first argument is converted
      * to a string and used as the message name. The remaining arguments
@@ -270,11 +284,15 @@ public:
      * @note This method is thread-safe and can be called from any thread
      */
     template<typename T, typename... Args>
-    void postMsg(T first_arg, Args... remaining_args) {
+    ChirpError::Error postMsg(T first_arg, Args... remaining_args) {
+        ChirpError::Error error = ChirpError::Error::SUCCESS;
         buildAndEnqueue(
-            [this](std::string& msg, std::vector<std::any>& args) { enqueMsg(msg, args); },
+            [this, &error](std::string& msg, std::vector<std::any>& args) { 
+                error = enqueMsg(msg, args); 
+            },
             first_arg, remaining_args...
         );
+        return error;
     }
 
     /**
@@ -283,6 +301,7 @@ public:
      * @tparam Args Variadic template for remaining arguments
      * @param first_arg The message name (first argument)
      * @param remaining_args The arguments to pass to the handler
+     * @return ChirpError::Error indicating success or failure
      *
      * Posts a message to the service and blocks until the handler has processed
      * the message. The first argument is converted to a string and used as the
@@ -292,10 +311,14 @@ public:
      * @note The handler function should not be void.
      */
     template<typename T, typename... Args>
-    void syncMsg(T first_arg, Args... remaining_args) {
+    ChirpError::Error syncMsg(T first_arg, Args... remaining_args) {
+        ChirpError::Error error = ChirpError::Error::SUCCESS;
         buildAndEnqueue(
-            [this](std::string& msg, std::vector<std::any>& args) { enqueSyncMsg(msg, args); },
+            [this, &error](std::string& msg, std::vector<std::any>& args) { 
+                error = enqueSyncMsg(msg, args); 
+            },
             first_arg, remaining_args...
         );
+        return error;
     }
 }; 

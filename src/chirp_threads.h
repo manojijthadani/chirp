@@ -2,6 +2,7 @@
 
 #include <thread>
 #include "message_loop.h"
+#include "chirp_error.h"
 
 class ChirpThread {
 
@@ -13,8 +14,8 @@ public:
 
     void startThread();
     void stopThread();
-    void enqueueMsg(Message* m);
-    void enqueueSyncMsg(Message* m);
+    ChirpError::Error enqueueMsg(Message* m);
+    ChirpError::Error enqueueSyncMsg(Message* m);
     void getCbMap(std::map<std::string, 
                   std::function<void(std::vector<std::any>)>>*& funcMap);
     bool isThreadStopped();        

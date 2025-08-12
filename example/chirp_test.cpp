@@ -7,6 +7,7 @@
 #include <deque>
 
 #include "chirp.h"
+#include "chirp_error.h"
 
 class ServiceMsgHandlers {
 public:
@@ -67,43 +68,93 @@ int main() {
 
     ServiceMsgHandlers mh;
 
-    Chirp svc1("Service1");
+    ChirpError::Error error;
+    Chirp svc1("Service1", error);
+    if (error != ChirpError::SUCCESS) {
+        std::cout << "Failed to create Service1: " << ChirpError::errorToString(error) << std::endl;
+        return 1;
+    }
     svc1.registerMsgHandler("TestIntegerTypes", &mh, &ServiceMsgHandlers::TestIntegerTypesHandler);
     svc1.registerMsgHandler("TestStringTypes", &mh, &ServiceMsgHandlers::TestStringTypesHandler);
     svc1.registerMsgHandler("TestCharTypes", &mh, &ServiceMsgHandlers::TestCharTypesHandler);
     svc1.registerMsgHandler("TestPointerTypes", &mh, &ServiceMsgHandlers::TestPointerTypesHandler);
     svc1.start();
 
-    Chirp svc2("Service2");
+    Chirp svc2("Service2", error);
+    if (error != ChirpError::SUCCESS) {
+        std::cout << "Failed to create Service2: " << ChirpError::errorToString(error) << std::endl;
+        return 1;
+    }
     svc2.registerMsgHandler("TestFloatingTypes", &mh, &ServiceMsgHandlers::TestFloatingTypesHandler);
     svc2.registerMsgHandler("TestBoolTypes", &mh, &ServiceMsgHandlers::TestBoolTypesHandler);
     svc2.registerMsgHandler("TestVectorTypes", &mh, &ServiceMsgHandlers::TestVectorTypesHandler);
     svc2.registerMsgHandler("TestVoidTypes", &mh, &ServiceMsgHandlers::TestVoidTypesHandler);
     svc2.start();
 
-    svc1.postMsg("TestIntegerTypes", 2, (short)100, (long)1000, (long long)10000);
-    svc2.postMsg("TestFloatingTypes", (float)3.14, (double)2.718, (long double)1.618);
-    svc1.postMsg("TestStringTypes", std::string("Hello, World!"));
-    svc2.postMsg("TestBoolTypes", true);
-    svc1.postMsg("TestCharTypes", 'a');
+    error = svc1.postMsg("TestIntegerTypes", 2, (short)100, (long)1000, (long long)10000);
+            if (error != ChirpError::SUCCESS) {
+            std::cout << "Failed to post TestIntegerTypes: " << ChirpError::errorToString(error) << std::endl;
+    }
+    
+    error = svc2.postMsg("TestFloatingTypes", (float)3.14, (double)2.718, (long double)1.618);
+    if (error != ChirpError::SUCCESS) {
+        std::cout << "Failed to post TestFloatingTypes: " << ChirpError::errorToString(error) << std::endl;
+    }
+    
+    error = svc1.postMsg("TestStringTypes", std::string("Hello, World!"));
+    if (error != ChirpError::SUCCESS) {
+        std::cout << "Failed to post TestStringTypes: " << ChirpError::errorToString(error) << std::endl;
+    }
+    
+    error = svc2.postMsg("TestBoolTypes", true);
+    if (error != ChirpError::SUCCESS) {
+        std::cout << "Failed to post TestBoolTypes: " << ChirpError::errorToString(error) << std::endl;
+    }
+    
+    error = svc1.postMsg("TestCharTypes", 'a');
+    if (error != ChirpError::SUCCESS) {
+        std::cout << "Failed to post TestCharTypes: " << ChirpError::errorToString(error) << std::endl;
+    }
 
     int a = 10;
-    svc1.postMsg("TestPointerTypes", &a);
+    error = svc1.postMsg("TestPointerTypes", &a);
+    if (error != ChirpError::SUCCESS) {
+        std::cout << "Failed to post TestPointerTypes: " << ChirpError::errorToString(error) << std::endl;
+    }
 
     std::vector<int> vec = {1, 2, 3, 4, 5};
-    svc2.postMsg("TestVectorTypes", vec);
-    svc2.postMsg("TestVoidTypes");
+    error = svc2.postMsg("TestVectorTypes", vec);
+    if (error != ChirpError::SUCCESS) {
+        std::cout << "Failed to post TestVectorTypes: " << ChirpError::errorToString(error) << std::endl;
+    }
+    
+    error = svc2.postMsg("TestVoidTypes");
+    if (error != ChirpError::SUCCESS) {
+        std::cout << "Failed to post TestVoidTypes: " << ChirpError::errorToString(error) << std::endl;
+    }
     std::cout << "Syncing TestVoidTypes" << std::endl;
-    svc2.syncMsg("TestVoidTypes");
+    error = svc2.syncMsg("TestVoidTypes");
+    if (error != ChirpError::SUCCESS) {
+        std::cout << "Failed to sync TestVoidTypes: " << ChirpError::errorToString(error) << std::endl;
+    }
     std::cout << "Synced TestVoidTypes" << std::endl;
 
     // Now lets try some negative testing.
     // This should fail. Invalid number of arguments.
-    svc1.postMsg("TestIntegerTypes", 2);
+    error = svc1.postMsg("TestIntegerTypes", 2);
+    if (error != ChirpError::SUCCESS) {
+        std::cout << "Failed to post TestIntegerTypes (negative test): " << ChirpError::errorToString(error) << std::endl;
+    }
     // This should fail. Invalid type of arguments.
-    svc1.postMsg("TestIntegerTypes", std::string("Negative test"));    
+    error = svc1.postMsg("TestIntegerTypes", std::string("Negative test"));
+    if (error != ChirpError::SUCCESS) {
+        std::cout << "Failed to post TestIntegerTypes (negative test): " << ChirpError::errorToString(error) << std::endl;
+    }
     // This should fail. Invalid order of arguments.
-    svc1.postMsg("TestIntegerTypes", (short)100, 2, (long)1000, (long long)10000);
+    error = svc1.postMsg("TestIntegerTypes", (short)100, 2, (long)1000, (long long)10000);
+    if (error != ChirpError::SUCCESS) {
+        std::cout << "Failed to post TestIntegerTypes (negative test): " << ChirpError::errorToString(error) << std::endl;
+    }
     
     // Wait for 3 seconds to allow the services to process the messages before
     // shutting down the application.

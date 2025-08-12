@@ -30,7 +30,7 @@ public:
     static ChirpFactory& getInstance();
 
     // Implementation of IChirpFactory interface
-    Chirp* createService(const std::string& service_name) override;
+    Chirp* createService(const std::string& service_name, ChirpError::Error& error) override;
     Chirp* getService(const std::string& service_name) override;
     bool destroyService(const std::string& service_name) override;
     size_t getServiceCount() const override;

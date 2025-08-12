@@ -18,18 +18,27 @@ ChirpFactory& ChirpFactory::getInstance() {
     return instance;
 }
 
-Chirp* ChirpFactory::createService(const std::string& service_name) {
+Chirp* ChirpFactory::createService(const std::string& service_name, ChirpError::Error& error) {
     std::lock_guard<std::mutex> lock(_mutex);
     
     // Check if service already exists
     auto it = _services.find(service_name);
     if (it != _services.end()) {
         ChirpLogger::instance("ChirpFactory") << "Service '" << service_name << "' already exists" << std::endl;
+        error = ChirpError::SERVICE_ALREADY_EXISTS;
         return it->second.get();
     }
     
     // Create new service
-    auto service = new Chirp(service_name);
+    auto service = new (std::nothrow) Chirp(service_name, error);
+    if (!service) {
+        error = ChirpError::RESOURCE_ALLOCATION_FAILED;
+        return nullptr;
+    }
+    if (error != ChirpError::SUCCESS) {
+        delete service; // Clean up the allocated service
+        return nullptr; // Error already set by Chirp constructor
+    }
     _services[service_name] = std::shared_ptr<Chirp>(service);
     
     ChirpLogger::instance("ChirpFactory") << "Created service '" << service_name << "'" << std::endl;

@@ -14,12 +14,26 @@ void ChirpThread::startThread() {
     _state = ThreadState::RUNNING;
 }
 
-void ChirpThread::enqueueMsg(Message* m) {
-    _mloop.enqueue(m);
+ChirpError::Error ChirpThread::enqueueMsg(Message* m) {
+    ChirpError::Error result = ChirpError::SUCCESS;
+    if (_state != ThreadState::STARTED && _state != ThreadState::RUNNING) {
+        ChirpLogger::instance(_service_name) << "Cannot enqueue message: thread not in STARTED or RUNNING state" << std::endl;
+        result = ChirpError::INVALID_SERVICE_STATE;
+    } else {
+        _mloop.enqueue(m);
+    }
+    return result;
 }
 
-void ChirpThread::enqueueSyncMsg(Message* m) {
-    _mloop.enqueueSync(m);
+ChirpError::Error ChirpThread::enqueueSyncMsg(Message* m) {
+    ChirpError::Error result = ChirpError::SUCCESS;
+    if (_state != ThreadState::STARTED && _state != ThreadState::RUNNING) {
+        ChirpLogger::instance(_service_name) << "Cannot enqueue sync message: thread not in STARTED or RUNNING state" << std::endl;
+        result = ChirpError::INVALID_SERVICE_STATE;
+    } else {
+        _mloop.enqueueSync(m);
+    }
+    return result;
 }
 
 void ChirpThread::getCbMap(std::map<std::string, std::function<void(std::vector<std::any>)>>*& funcMap) {

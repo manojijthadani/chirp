@@ -3,6 +3,7 @@
 #include <chrono>
 
 #include "chirp.h"
+#include "chirp_error.h"
 
 class SimpleHandlers {
 public:
@@ -26,7 +27,12 @@ int main() {
     std::cout << "Chirp API version: " << Chirp::getVersion() << std::endl;
     
     // Create a Chirp service
-    Chirp service("DemoService");
+    ChirpError::Error error;
+    Chirp service("DemoService", error);
+    if (error != ChirpError::SUCCESS) {
+        std::cout << "Failed to create service: " << ChirpError::errorToString(error) << std::endl;
+        return 1;
+    }
     
     SimpleHandlers handlers;
     
@@ -42,7 +48,11 @@ int main() {
     
     // Send one asynchronous message - this doesn't block
     std::cout << "Sending async message..." << std::endl;
-    service.postMsg("AsyncMessage", std::string("Hello Async World!"));
+    error = service.postMsg("AsyncMessage", std::string("Hello Async World!"));
+    if (error != ChirpError::SUCCESS) {
+        std::cout << "Failed to post async message: " << ChirpError::errorToString(error) << std::endl;
+        return 1;
+    }
     std::cout << "Async message sent immediately (non-blocking)" << std::endl;
     
     // Give some time for async message to process
@@ -52,7 +62,11 @@ int main() {
     
     // Send one synchronous message - this blocks until handler completes
     std::cout << "Sending sync message (this will block)..." << std::endl;
-    service.syncMsg("SyncMessage", std::string("Hello Sync World!"), 42);
+    error = service.syncMsg("SyncMessage", std::string("Hello Sync World!"), 42);
+    if (error != ChirpError::SUCCESS) {
+        std::cout << "Failed to post sync message: " << ChirpError::errorToString(error) << std::endl;
+        return 1;
+    }
     std::cout << "Sync message completed" << std::endl;  
         
     // Shutdown the service

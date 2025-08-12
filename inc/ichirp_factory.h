@@ -13,6 +13,7 @@
 #pragma once
 #include <memory>
 #include <string>
+#include "chirp_error.h"
 
 // Forward declaration to prevent inclusion of private headers
 class Chirp;
@@ -43,9 +44,10 @@ public:
     /**
      * @brief Create a new Chirp service instance
      * @param service_name The name of the service to create
-     * @return Pointer to the created Chirp service
+     * @param error Output parameter for error status
+     * @return Pointer to the created Chirp service, nullptr if creation failed
      */
-    virtual Chirp* createService(const std::string& service_name) = 0;
+    virtual Chirp* createService(const std::string& service_name, ChirpError::Error& error) = 0;
 
     /**
      * @brief Get an existing service by name

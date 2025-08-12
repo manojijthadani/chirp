@@ -14,8 +14,11 @@ const std::string& Chirp::getVersion() {
     return _version;
 }
 
-Chirp::Chirp(const std::string& service_name) {
-    _impl = new ChirpImpl(service_name);
+Chirp::Chirp(const std::string& service_name, ChirpError::Error& error) {
+    _impl = new (std::nothrow) ChirpImpl(service_name, error);
+    if (!_impl) {
+        error = ChirpError::RESOURCE_ALLOCATION_FAILED;
+    }
 }
 
 void Chirp::start() {
@@ -30,12 +33,12 @@ std::string Chirp::getServiceName() {
     return _impl->getServiceName();
 }
 
-void Chirp::enqueMsg(std::string& msgName, std::vector<std::any>& args) {
-    _impl->enqueMsg(msgName, args);
+ChirpError::Error Chirp::enqueMsg(std::string& msgName, std::vector<std::any>& args) {
+    return _impl->enqueMsg(msgName, args);
 }
 
-void Chirp::enqueSyncMsg(std::string& msgName, std::vector<std::any>& args) {
-    _impl->enqueSyncMsg(msgName, args);
+ChirpError::Error Chirp::enqueSyncMsg(std::string& msgName, std::vector<std::any>& args) {
+    return _impl->enqueSyncMsg(msgName, args);
 }
 
 void Chirp::getCbMap(std::map<std::string, std::function<void(std::vector<std::any>)>>*& funcMap) {

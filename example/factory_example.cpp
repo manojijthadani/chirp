@@ -4,6 +4,7 @@
 #include "ichirp_factory.h"
 #include "chirp_factory.h"
 #include "chirp.h"
+#include "chirp_error.h"
 
 class FactoryServiceHandlers {
 public:
@@ -32,12 +33,31 @@ int main() {
     std::cout << "Interface version: " << factory_interface->getVersion() << std::endl;
     
     // Create multiple services using the factory
-    auto service1 = factory.createService("LoggerService");
-    auto service2 = factory.createService("NetworkService");
-    auto service3 = factory.createService("DatabaseService");
+    ChirpError::Error error;
+    auto service1 = factory.createService("LoggerService", error);
+    if (error != ChirpError::SUCCESS) {
+        std::cout << "Failed to create LoggerService: " << ChirpError::errorToString(error) << std::endl;
+        return 1;
+    }
+    
+    auto service2 = factory.createService("NetworkService", error);
+    if (error != ChirpError::SUCCESS) {
+        std::cout << "Failed to create NetworkService: " << ChirpError::errorToString(error) << std::endl;
+        return 1;
+    }
+    
+    auto service3 = factory.createService("DatabaseService", error);
+    if (error != ChirpError::SUCCESS) {
+        std::cout << "Failed to create DatabaseService: " << ChirpError::errorToString(error) << std::endl;
+        return 1;
+    }
     
     // Demonstrate using the interface for service creation
-    auto service4 = factory_interface->createService("InterfaceService");
+    auto service4 = factory_interface->createService("InterfaceService", error);
+    if (error != ChirpError::SUCCESS) {
+        std::cout << "Failed to create InterfaceService: " << ChirpError::errorToString(error) << std::endl;
+        return 1;
+    }
     
     // Create handler instance
     FactoryServiceHandlers handlers;
@@ -59,12 +79,31 @@ int main() {
     service4->start(); 
     std::cout << "Created " << factory.getServiceCount() << " services" << std::endl; 
     
-    // Post messages to different services
-    service1->postMsg("Greeting", std::string("Alice"));
-    service2->postMsg("Greeting", std::string("Bob"));
-    service1->postMsg("Status", std::string("LoggerService"), 200);
-    service3->postMsg("Status", std::string("DatabaseService"), 404);
-    service4->postMsg("Greeting", std::string("Interface User"));
+    // Post messages to different services with error handling
+    error = service1->postMsg("Greeting", std::string("Alice"));
+    if (error != ChirpError::SUCCESS) {
+        std::cout << "Failed to post Greeting to LoggerService: " << ChirpError::errorToString(error) << std::endl;
+    }
+    
+    error = service2->postMsg("Greeting", std::string("Bob"));
+    if (error != ChirpError::SUCCESS) {
+        std::cout << "Failed to post Greeting to NetworkService: " << ChirpError::errorToString(error) << std::endl;
+    }
+    
+    error = service1->postMsg("Status", std::string("LoggerService"), 200);
+    if (error != ChirpError::SUCCESS) {
+        std::cout << "Failed to post Status to LoggerService: " << ChirpError::errorToString(error) << std::endl;
+    }
+    
+    error = service3->postMsg("Status", std::string("DatabaseService"), 404);
+    if (error != ChirpError::SUCCESS) {
+        std::cout << "Failed to post Status to DatabaseService: " << ChirpError::errorToString(error) << std::endl;
+    }
+    
+    error = service4->postMsg("Greeting", std::string("Interface User"));
+    if (error != ChirpError::SUCCESS) {
+        std::cout << "Failed to post Greeting to InterfaceService: " << ChirpError::errorToString(error) << std::endl;
+    }
     
     // Demonstrate retrieving a service by name
     auto retrieved_service = factory.getService("LoggerService");
@@ -91,7 +130,7 @@ int main() {
     }
     
     // Try to create a service with the same name (should return existing)
-    auto duplicate_service = factory.createService("LoggerService");
+    auto duplicate_service = factory.createService("LoggerService", error);
     if (duplicate_service == service1) {
         std::cout << "Factory correctly returned existing LoggerService" << std::endl;
     }
