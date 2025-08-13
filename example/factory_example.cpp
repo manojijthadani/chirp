@@ -63,14 +63,41 @@ int main() {
     FactoryServiceHandlers handlers;
     
     // Register message handlers for each service
-    service1->registerMsgHandler("Greeting", &handlers, &FactoryServiceHandlers::GreetingHandler);
-    service1->registerMsgHandler("Status", &handlers, &FactoryServiceHandlers::StatusHandler);
+    error = service1->registerMsgHandler("Greeting", &handlers, &FactoryServiceHandlers::GreetingHandler);
+    if (error != ChirpError::SUCCESS) {
+        std::cout << "Failed to register Greeting handler for LoggerService: " << ChirpError::errorToString(error) << std::endl;
+        return 1;
+    }
     
-    service2->registerMsgHandler("Greeting", &handlers, &FactoryServiceHandlers::GreetingHandler);
-    service2->registerMsgHandler("Shutdown", &handlers, &FactoryServiceHandlers::ShutdownHandler);
+    error = service1->registerMsgHandler("Status", &handlers, &FactoryServiceHandlers::StatusHandler);
+    if (error != ChirpError::SUCCESS) {
+        std::cout << "Failed to register Status handler for LoggerService: " << ChirpError::errorToString(error) << std::endl;
+        return 1;
+    }
     
-    service3->registerMsgHandler("Status", &handlers, &FactoryServiceHandlers::StatusHandler);
-    service4->registerMsgHandler("Greeting", &handlers, &FactoryServiceHandlers::GreetingHandler);
+    error = service2->registerMsgHandler("Greeting", &handlers, &FactoryServiceHandlers::GreetingHandler);
+    if (error != ChirpError::SUCCESS) {
+        std::cout << "Failed to register Greeting handler for NetworkService: " << ChirpError::errorToString(error) << std::endl;
+        return 1;
+    }
+    
+    error = service2->registerMsgHandler("Shutdown", &handlers, &FactoryServiceHandlers::ShutdownHandler);
+    if (error != ChirpError::SUCCESS) {
+        std::cout << "Failed to register Shutdown handler for NetworkService: " << ChirpError::errorToString(error) << std::endl;
+        return 1;
+    }
+    
+    error = service3->registerMsgHandler("Status", &handlers, &FactoryServiceHandlers::StatusHandler);
+    if (error != ChirpError::SUCCESS) {
+        std::cout << "Failed to register Status handler for DatabaseService: " << ChirpError::errorToString(error) << std::endl;
+        return 1;
+    }
+    
+    error = service4->registerMsgHandler("Greeting", &handlers, &FactoryServiceHandlers::GreetingHandler);
+    if (error != ChirpError::SUCCESS) {
+        std::cout << "Failed to register Greeting handler for InterfaceService: " << ChirpError::errorToString(error) << std::endl;
+        return 1;
+    }
     
     // Start all services
     service1->start();

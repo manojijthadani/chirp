@@ -25,7 +25,7 @@ Chirp is a project that aims at providing a very light weight and simple API wri
 
 ## Project Overview
 
-The API for Chirp enables developers to create services as individual threads. Each service runs in its own thread and is responsible for handling multiple tasks. Tasks are registered to a service using the `registerMsgHandler(..)` function that associates a unique message to a task. Once registered, these tasks are triggered when the service receives corresponding messages through the `postMsg(..)` call. Developers must ensure that the order and data types of parameters remain consistent between the `registerMsgHandler(..)` and `postMsg(..)` calls. If there is a mismatch a message will be provided in the debug log. Internally, each service manages an event queue to handle and dispatch messages to the appropriate task handlers. The tasks registered for a service are gauranteed to run on the same thread and in the order the messages came in. Hence all the tasks for a service are thread safe.
+The API for Chirp enables developers to create services as individual threads. Each service runs in its own thread and is responsible for handling multiple tasks. Tasks are registered to a service using the `registerMsgHandler(..)` function that associates a unique message to a task. This function returns a `ChirpError::Error` code indicating success or failure. Once registered, these tasks are triggered when the service receives corresponding messages through the `postMsg(..)` call. Developers must ensure that the order and data types of parameters remain consistent between the `registerMsgHandler(..)` and `postMsg(..)` calls. If there is a mismatch, the helper methods will return `INVALID_ARGUMENTS` and a message will be provided in the debug log. Internally, each service manages an event queue to handle and dispatch messages to the appropriate task handlers. The tasks registered for a service are gauranteed to run on the same thread and in the order the messages came in. Hence all the tasks for a service are thread safe.
 
 Chirp is a C++20 library that provides a lightweight, thread-safe message-passing framework for building concurrent services. The framework enables developers to create services that communicate through asynchronous message passing, with support for type-safe message handlers and flexible argument passing.
 
@@ -154,8 +154,17 @@ private:
 
 // Usage
 ServiceHandlers handlers;
-service.registerMsgHandler("AsyncMessage", &handlers, &ServiceHandlers::asyncHandler);
-service.registerMsgHandler("SyncMessage", &handlers, &ServiceHandlers::syncHandler);
+ChirpError::Error error = service.registerMsgHandler("AsyncMessage", &handlers, &ServiceHandlers::asyncHandler);
+if (error != ChirpError::SUCCESS) {
+    std::cout << "Failed to register AsyncMessage handler: " << ChirpError::errorToString(error) << std::endl;
+    return;
+}
+
+error = service.registerMsgHandler("SyncMessage", &handlers, &ServiceHandlers::syncHandler);
+if (error != ChirpError::SUCCESS) {
+    std::cout << "Failed to register SyncMessage handler: " << ChirpError::errorToString(error) << std::endl;
+    return;
+}
 ```
 
 #### Benefits of New Interface
@@ -251,7 +260,11 @@ if (error != ChirpError::SUCCESS) {
 
 // Create handler instance and register message handlers
 MessageHandlers handlers;
-service.registerMsgHandler("Message", &handlers, &MessageHandlers::handlerMethod);
+ChirpError::Error error = service.registerMsgHandler("Message", &handlers, &MessageHandlers::handlerMethod);
+if (error != ChirpError::SUCCESS) {
+    std::cout << "Failed to register Message handler: " << ChirpError::errorToString(error) << std::endl;
+    return;
+}
 
 // Start service
 service.start();
@@ -298,7 +311,11 @@ public:
 MessageHandlers handlers;
 
 // Registration using object instance and member method pointer
-service.registerMsgHandler("MessageType", &handlers, &MessageHandlers::handler);
+ChirpError::Error error = service.registerMsgHandler("MessageType", &handlers, &MessageHandlers::handler);
+if (error != ChirpError::SUCCESS) {
+    std::cout << "Failed to register MessageType handler: " << ChirpError::errorToString(error) << std::endl;
+    return;
+}
 ```
 
 **Note**: The interface only supports member function handlers bound to object instances. This provides better encapsulation and allows handlers to access instance state and data.
@@ -379,7 +396,11 @@ auto service2 = factory.createService("NetworkService");
 
 // Create handler instances and register handlers
 LogHandlers logHandlers;
-service1->registerMsgHandler("Log", &logHandlers, &LogHandlers::logHandler);
+ChirpError::Error error = service1->registerMsgHandler("Log", &logHandlers, &LogHandlers::logHandler);
+if (error != ChirpError::SUCCESS) {
+    std::cout << "Failed to register Log handler: " << ChirpError::errorToString(error) << std::endl;
+    return;
+}
 service1->start();
 
 // Retrieve existing services

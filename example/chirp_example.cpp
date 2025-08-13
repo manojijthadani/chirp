@@ -37,8 +37,17 @@ int main() {
     SimpleHandlers handlers;
     
     // Register message handlers
-    service.registerMsgHandler("AsyncMessage", &handlers, &SimpleHandlers::AsyncHandler);
-    service.registerMsgHandler("SyncMessage", &handlers, &SimpleHandlers::SyncHandler);
+    error = service.registerMsgHandler("AsyncMessage", &handlers, &SimpleHandlers::AsyncHandler);
+    if (error != ChirpError::SUCCESS) {
+        std::cout << "Failed to register AsyncMessage handler: " << ChirpError::errorToString(error) << std::endl;
+        return 1;
+    }
+    
+    error = service.registerMsgHandler("SyncMessage", &handlers, &SimpleHandlers::SyncHandler);
+    if (error != ChirpError::SUCCESS) {
+        std::cout << "Failed to register SyncMessage handler: " << ChirpError::errorToString(error) << std::endl;
+        return 1;
+    }
     
     // Start the service
     service.start();

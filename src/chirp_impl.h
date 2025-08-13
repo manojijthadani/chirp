@@ -12,7 +12,7 @@ public:
     std::string getServiceName();
     ChirpError::Error enqueMsg(std::string& msgName, std::vector<std::any>& args);
     ChirpError::Error enqueSyncMsg(std::string& msgName, std::vector<std::any>& args);
-    void getCbMap(std::map<std::string, std::function<void(std::vector<std::any>)>>*& funcMap);
+    void getCbMap(std::map<std::string, std::function<ChirpError::Error(std::vector<std::any>)>>*& funcMap);
 
 private:
     void waitUntilServiceStopped();

@@ -17,7 +17,7 @@ public:
     ChirpError::Error enqueueMsg(Message* m);
     ChirpError::Error enqueueSyncMsg(Message* m);
     void getCbMap(std::map<std::string, 
-                  std::function<void(std::vector<std::any>)>>*& funcMap);
+                  std::function<ChirpError::Error(std::vector<std::any>)>>*& funcMap);
     bool isThreadStopped();        
 
 private:

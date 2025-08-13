@@ -77,7 +77,7 @@ void MessageLoop::setServiceName(const std::string& service_name) {
     _service_name = service_name;
 }
 
-void MessageLoop::getCbMap(std::map<std::string, std::function<void(std::vector<std::any>)>>*& funcMap) {
+void MessageLoop::getCbMap(std::map<std::string, std::function<ChirpError::Error(std::vector<std::any>)>>*& funcMap) {
     funcMap = &_functions;
 }
 

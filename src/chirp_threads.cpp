@@ -36,7 +36,7 @@ ChirpError::Error ChirpThread::enqueueSyncMsg(Message* m) {
     return result;
 }
 
-void ChirpThread::getCbMap(std::map<std::string, std::function<void(std::vector<std::any>)>>*& funcMap) {
+void ChirpThread::getCbMap(std::map<std::string, std::function<ChirpError::Error(std::vector<std::any>)>>*& funcMap) {
     _mloop.getCbMap(funcMap);
 }
 

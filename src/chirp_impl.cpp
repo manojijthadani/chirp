@@ -68,7 +68,7 @@ ChirpError::Error ChirpImpl::enqueSyncMsg(std::string& msgName, std::vector<std:
     return result;
 }
 
-void ChirpImpl::getCbMap(std::map<std::string, std::function<void(std::vector<std::any>)>>*& funcMap) {
+void ChirpImpl::getCbMap(std::map<std::string, std::function<ChirpError::Error(std::vector<std::any>)>>*& funcMap) {
     _nthread->getCbMap(funcMap);
 }
 
