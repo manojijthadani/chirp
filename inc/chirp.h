@@ -113,7 +113,9 @@ public:
      *       is already registered for this message name, or an appropriate error code on failure
      */
     template<typename Obj, typename Ret, typename... Args>
-    ChirpError::Error registerMsgHandler(std::string msgName, Obj* object, Ret(Obj::*method)(Args...)) {
+    ChirpError::Error registerMsgHandler(std::string msgName, 
+                                         Obj* object, 
+                                         Ret(Obj::*method)(Args...)) {
         std::map<std::string, std::function<ChirpError::Error(std::vector<std::any>)>>* functions = nullptr;
         getCbMap(functions);
         
@@ -150,7 +152,9 @@ public:
      * @note Use this version when registering handlers for const member functions
      */
     template<typename Obj, typename Ret, typename... Args>
-    ChirpError::Error registerMsgHandler(std::string msgName, Obj* object, Ret(Obj::*method)(Args...) const) {
+    ChirpError::Error registerMsgHandler(std::string msgName, 
+                                         Obj* object, 
+                                         Ret(Obj::*method)(Args...) const) {
         std::map<std::string, std::function<ChirpError::Error(std::vector<std::any>)>>* functions = nullptr;
         getCbMap(functions);
         
@@ -226,7 +230,8 @@ private:
      * @return ChirpError::Error indicating success or failure
      */
     template<typename... Args>
-    ChirpError::Error validateArgCount(const std::vector<std::any>& args, const std::string& service_name) {
+    ChirpError::Error validateArgCount(const std::vector<std::any>& args, 
+                                       const std::string& service_name) {
         if (args.size() < sizeof...(Args) + 1) {
             return ChirpError::INVALID_ARGUMENTS;
         }
@@ -244,7 +249,9 @@ private:
      * @return ChirpError::Error indicating success or failure
      */
     template<typename Obj, typename Ret, typename... Args>
-    ChirpError::Error executeHandler(Obj* object, Ret(Obj::*method)(Args...), const std::vector<std::any>& args) {
+    ChirpError::Error executeHandler(Obj* object, 
+                                     Ret(Obj::*method)(Args...), 
+                                     const std::vector<std::any>& args) {
         ChirpError::Error validateResult = validateArgCount<Args...>(args, 
                                                                      this->getServiceName());
         if (validateResult != ChirpError::SUCCESS) {
@@ -296,7 +303,10 @@ private:
      * @param args Vector of arguments to pass to the handler
      */
     template<typename Obj, typename Ret, typename... Args, size_t... I>
-    void executeHandlerImpl(Obj* object, Ret(Obj::*method)(Args...), const std::vector<std::any>& args, std::index_sequence<I...>) {
+    void executeHandlerImpl(Obj* object, 
+                            Ret(Obj::*method)(Args...), 
+                            const std::vector<std::any>& args, 
+                            std::index_sequence<I...>) {
         (object->*method)(std::any_cast<Args>(args[I])...);
     }
 
@@ -311,7 +321,10 @@ private:
      * @param args Vector of arguments to pass to the handler
      */
     template<typename Obj, typename Ret, typename... Args, size_t... I>
-    void executeHandlerImpl(Obj* object, Ret(Obj::*method)(Args...) const, const std::vector<std::any>& args, std::index_sequence<I...>) {
+    void executeHandlerImpl(Obj* object, 
+                            Ret(Obj::*method)(Args...) const, 
+                            const std::vector<std::any>& args, 
+                            std::index_sequence<I...>) {
         (object->*method)(std::any_cast<Args>(args[I])...);
     }
 
@@ -326,7 +339,9 @@ private:
      * @return ChirpError::Error indicating success or failure
      */
     template<typename Obj, typename Ret, typename... Args>
-    ChirpError::Error executeConstHandler(Obj* object, Ret(Obj::*method)(Args...) const, const std::vector<std::any>& args) {
+    ChirpError::Error executeConstHandler(Obj* object, 
+                                          Ret(Obj::*method)(Args...) const, 
+                                          const std::vector<std::any>& args) {
         ChirpError::Error validateResult = validateArgCount<Args...>(args, this->getServiceName());
         if (validateResult != ChirpError::SUCCESS) {
                         
@@ -426,7 +441,9 @@ private:
      * @note This method always returns SUCCESS as it performs no operations that can fail
      */
     template<typename EnqueueFunc, typename T, typename... Args>
-    ChirpError::Error buildAndEnqueue(EnqueueFunc enqueue, T first_arg, Args... remaining_args) {
+    ChirpError::Error buildAndEnqueue(EnqueueFunc enqueue, 
+                                      T first_arg, 
+                                      Args... remaining_args) {
         std::ostringstream oss;
         oss << first_arg;
         std::string first_arg_str = oss.str();
