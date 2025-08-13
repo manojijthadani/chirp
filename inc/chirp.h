@@ -109,12 +109,20 @@ public:
      * the arguments passed to postMsg().
      * 
      * @note Handlers are executed in the service thread in FIFO order
-     * @note This method returns SUCCESS if registration succeeds, or an appropriate error code on failure
+     * @note This method returns SUCCESS if registration succeeds, HANDLER_ALREADY_EXISTS if a handler
+     *       is already registered for this message name, or an appropriate error code on failure
      */
     template<typename Obj, typename Ret, typename... Args>
     ChirpError::Error registerMsgHandler(std::string msgName, Obj* object, Ret(Obj::*method)(Args...)) {
         std::map<std::string, std::function<ChirpError::Error(std::vector<std::any>)>>* functions = nullptr;
         getCbMap(functions);
+        
+        // Check if a handler is already registered for this message name
+        auto it = functions->find(msgName);
+        if (it != functions->end()) {
+            return ChirpError::HANDLER_ALREADY_EXISTS;
+        }
+        
         (*functions)[msgName] = std::bind(&Chirp::executeHandler<Obj, Ret, Args...>, 
                                           this, 
                                           object, 
@@ -137,13 +145,21 @@ public:
      * the arguments passed to postMsg().
      * 
      * @note Handlers are executed in the service thread in FIFO order
-     * @note This method returns SUCCESS if registration succeeds, or an appropriate error code on failure
+     * @note This method returns SUCCESS if registration succeeds, HANDLER_ALREADY_EXISTS if a handler
+     *       is already registered for this message name, or an appropriate error code on failure
      * @note Use this version when registering handlers for const member functions
      */
     template<typename Obj, typename Ret, typename... Args>
     ChirpError::Error registerMsgHandler(std::string msgName, Obj* object, Ret(Obj::*method)(Args...) const) {
         std::map<std::string, std::function<ChirpError::Error(std::vector<std::any>)>>* functions = nullptr;
         getCbMap(functions);
+        
+        // Check if a handler is already registered for this message name
+        auto it = functions->find(msgName);
+        if (it != functions->end()) {
+            return ChirpError::HANDLER_ALREADY_EXISTS;
+        }
+        
         (*functions)[msgName] = std::bind(&Chirp::executeConstHandler<Obj, Ret, Args...>, 
                                           this, 
                                           object, 
@@ -349,8 +365,6 @@ private:
         
         return result;
     }
-
-
 
     /**
      * @brief Enqueue a message for processing
