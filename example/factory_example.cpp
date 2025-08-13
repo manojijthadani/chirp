@@ -34,26 +34,30 @@ int main() {
     
     // Create multiple services using the factory
     ChirpError::Error error;
-    auto service1 = factory.createService("LoggerService", error);
+    Chirp* service1 = nullptr;
+    error = factory.createService("LoggerService", &service1);
     if (error != ChirpError::SUCCESS) {
         std::cout << "Failed to create LoggerService: " << ChirpError::errorToString(error) << std::endl;
         return 1;
     }
     
-    auto service2 = factory.createService("NetworkService", error);
+    Chirp* service2 = nullptr;
+    error = factory.createService("NetworkService", &service2);
     if (error != ChirpError::SUCCESS) {
         std::cout << "Failed to create NetworkService: " << ChirpError::errorToString(error) << std::endl;
         return 1;
     }
     
-    auto service3 = factory.createService("DatabaseService", error);
+    Chirp* service3 = nullptr;
+    error = factory.createService("DatabaseService", &service3);
     if (error != ChirpError::SUCCESS) {
         std::cout << "Failed to create DatabaseService: " << ChirpError::errorToString(error) << std::endl;
         return 1;
     }
     
     // Demonstrate using the interface for service creation
-    auto service4 = factory_interface->createService("InterfaceService", error);
+    Chirp* service4 = nullptr;
+    error = factory_interface->createService("InterfaceService", &service4);
     if (error != ChirpError::SUCCESS) {
         std::cout << "Failed to create InterfaceService: " << ChirpError::errorToString(error) << std::endl;
         return 1;
@@ -156,10 +160,11 @@ int main() {
         std::cout << "Remaining services: " << factory.getServiceCount() << std::endl;
     }
     
-    // Try to create a service with the same name (should return existing)
-    auto duplicate_service = factory.createService("LoggerService", error);
-    if (duplicate_service == service1) {
-        std::cout << "Factory correctly returned existing LoggerService" << std::endl;
+    // Try to create a service with the same name (should return error)
+    Chirp* duplicate_service = nullptr;
+    error = factory.createService("LoggerService", &duplicate_service);
+    if (error == ChirpError::SERVICE_ALREADY_EXISTS) {
+        std::cout << "Factory correctly returned SERVICE_ALREADY_EXISTS error for duplicate service" << std::endl;
     }
     
     // Wait a bit more to see all the messages being processed

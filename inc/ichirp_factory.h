@@ -44,10 +44,13 @@ public:
     /**
      * @brief Create a new Chirp service instance
      * @param service_name The name of the service to create
-     * @param error Output parameter for error status
-     * @return Pointer to the created Chirp service, nullptr if creation failed
+     * @param service Output parameter for the created service pointer
+     * @return ChirpError::Error indicating success or failure
+     * 
+     * @note If successful, *service will point to the created Chirp instance
+     * @note If failed, *service will be set to nullptr
      */
-    virtual Chirp* createService(const std::string& service_name, ChirpError::Error& error) = 0;
+    virtual ChirpError::Error createService(const std::string& service_name, Chirp** service) = 0;
 
     /**
      * @brief Get an existing service by name

@@ -18,31 +18,41 @@ ChirpFactory& ChirpFactory::getInstance() {
     return instance;
 }
 
-Chirp* ChirpFactory::createService(const std::string& service_name, ChirpError::Error& error) {
+ChirpError::Error ChirpFactory::createService(const std::string& service_name, Chirp** service) {
     std::lock_guard<std::mutex> lock(_mutex);
+    
+    // Initialize the output parameter
+    *service = nullptr;
     
     // Check if service already exists
     auto it = _services.find(service_name);
     if (it != _services.end()) {
         ChirpLogger::instance("ChirpFactory") << "Service '" << service_name << "' already exists" << std::endl;
-        error = ChirpError::SERVICE_ALREADY_EXISTS;
-        return it->second.get();
+        return ChirpError::SERVICE_ALREADY_EXISTS;
     }
     
     // Create new service
-    auto service = new (std::nothrow) Chirp(service_name, error);
-    if (!service) {
-        error = ChirpError::RESOURCE_ALLOCATION_FAILED;
-        return nullptr;
+    ChirpError::Error error = ChirpError::SUCCESS;
+    auto newService = new (std::nothrow) Chirp(service_name, error);
+    if (!newService) {
+        ChirpLogger::instance("ChirpFactory") << "Failed to allocate memory for service '" << service_name << "'" << std::endl;
+        return ChirpError::RESOURCE_ALLOCATION_FAILED;
     }
+    
     if (error != ChirpError::SUCCESS) {
-        delete service; // Clean up the allocated service
-        return nullptr; // Error already set by Chirp constructor
+        delete newService; // Clean up the allocated service
+        ChirpLogger::instance("ChirpFactory") << "Failed to initialize service '" << service_name << "' with error: " << ChirpError::errorToString(error) << std::endl;
+        return error; // Return the error from the Chirp constructor
     }
-    _services[service_name] = std::shared_ptr<Chirp>(service);
+    
+    // Store the service in our map
+    _services[service_name] = std::shared_ptr<Chirp>(newService);
+    
+    // Set the output parameter to point to the created service
+    *service = newService;
     
     ChirpLogger::instance("ChirpFactory") << "Created service '" << service_name << "'" << std::endl;
-    return service;
+    return ChirpError::SUCCESS;
 }
 
 Chirp* ChirpFactory::getService(const std::string& service_name) {

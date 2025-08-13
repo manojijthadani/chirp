@@ -222,7 +222,8 @@ The Chirp framework provides comprehensive error handling through the `ChirpErro
 #### Error Handling Pattern
 ```cpp
 ChirpError::Error error;
-auto service = factory.createService("MyService", error);
+Chirp* service = nullptr;
+ChirpError::Error error = factory.createService("MyService", &service);
     if (error != ChirpError::SUCCESS) {
         std::cout << "Service creation failed: " << ChirpError::errorToString(error) << std::endl;
         // Handle the error appropriately
@@ -252,7 +253,8 @@ if (error != ChirpError::SUCCESS) {
 
 // Factory-based service creation with error handling
 auto& factory = ChirpFactory::getInstance();
-auto service = factory.createService("ServiceCreatedByFactory", error);
+Chirp* service = nullptr;
+ChirpError::Error error = factory.createService("ServiceCreatedByFactory", &service);
 if (error != ChirpError::SUCCESS) {
     // Handle creation failure
     std::cout << "Service creation failed: " << ChirpError::errorToString(error);
