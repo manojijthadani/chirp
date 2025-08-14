@@ -1,4 +1,4 @@
-# Chirp					![Project Logo](./asset/chirp_logo.png)
+​					![Project Logo](./asset/chirp_logo.png)
 
 # README
 
