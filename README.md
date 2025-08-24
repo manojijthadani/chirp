@@ -32,7 +32,8 @@ MessageHandlers handlers;
 
 // Registration using object instance and member method pointer
 ChirpError::Error error = service.registerMsgHandler("SomeMessage", 
-                                                     &handlers,                                                                                &MessageHandlers::handler);
+                                                     &handlers,
+                                                     &MessageHandlers::handler);
 if (error != ChirpError::SUCCESS) {
     std::cout << "Failed to register MessageType handler: " 
               << ChirpError::errorToString(error) << std::endl;
