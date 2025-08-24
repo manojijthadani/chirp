@@ -1,13 +1,14 @@
-​					![Project Logo](./asset/chirp_logo.png)
+					![Project Logo](./asset/chirp_logo.png)
 
 # README
 
 ## Table of Contents
 1. [Purpose](#purpose)
-2. [Build](#Build)
-3. [Authors](#Authors)
-4. [Credits](#Credits)
-5. [License](#License)
+2. [Basic API Usage](#Basic API Usage)
+3. [Build](#Build)
+4. [Authors](#Authors)
+5. [Credits](#Credits)
+6. [License](#License)
 
 ## Purpose
 
@@ -16,6 +17,41 @@ Software architects are often faced with the decision of choosing between a mult
 In contrast, a multi-threaded design can offer a compelling trade-off. By leveraging lightweight threads within a single process boundary, systems can achieve parallelism with lower latency, as there's no need for data serialization or security overhead typically required in cross-process communication. However, this approach may reduce flexibility in fault isolation, making the system less resilient to individual thread failures.
 
 Chirp is a project that aims at providing a very light weight and simple API written in C++ for C++ developers that alllows for inter thread communication. Developers must breakdown a thread activity into smaller tasks which can be triggered with simple messages sent to the thread. These tasks are executed in the order the messages were sent to the thread. 
+
+### Basic API Usage
+
+```cpp
+// Handler class with methods that match expected arguments
+class MessageHandlers {
+public:
+    void handler(int a, std::string b, std::vector<int> c);
+};
+
+// Create handler instance
+MessageHandlers handlers;
+
+// Registration using object instance and member method pointer
+ChirpError::Error error = service.registerMsgHandler("SomeMessage", 
+                                                     &handlers,                                                                                &MessageHandlers::handler);
+if (error != ChirpError::SUCCESS) {
+    std::cout << "Failed to register MessageType handler: " 
+              << ChirpError::errorToString(error) << std::endl;
+    return;
+}
+
+// Any other piece of code that has an access to service can invoke the 
+// handler with a postMsg(..) or syncMsg(..) call. Example shown below
+int arg1;
+std::string arg2;
+std::vector<int> arg3;
+// Note: The order and type of parameters of the arguments must match that of the handler.
+ChirpError::Error error = service.postMsg("SomeMessage", arg1, arg2, arg3);
+if (error != ChirpError::SUCCESS) {
+    std::cout << "Failed to post message: " << ChirpError::errorToString(error);
+    // Handle the error appropriately
+}
+
+```
 
 ## Build 
 
