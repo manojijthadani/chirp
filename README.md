@@ -4,11 +4,11 @@
 
 ## Table of Contents
 1. [Purpose](#purpose)
-2. [Basic API Usage](#Basic API Usage)
-3. [Build](#Build)
-4. [Authors](#Authors)
-5. [Credits](#Credits)
-6. [License](#License)
+2. [Basic API Usage](#basic-api-usage)
+3. [Build](#build)
+4. [Authors](#authors)
+5. [Credits](#credits)
+6. [License](#license)
 
 ## Purpose
 
@@ -18,7 +18,7 @@ In contrast, a multi-threaded design can offer a compelling trade-off. By levera
 
 Chirp is a project that aims at providing a very light weight and simple API written in C++ for C++ developers that alllows for inter thread communication. Developers must breakdown a thread activity into smaller tasks which can be triggered with simple messages sent to the thread. These tasks are executed in the order the messages were sent to the thread. 
 
-### Basic API Usage
+## Basic API Usage
 
 ```cpp
 // Handler class with methods that match expected arguments
