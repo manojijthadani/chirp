@@ -5,6 +5,13 @@ add_library(chirp SHARED chirp_threads.cpp
                          chirp.cpp 
                          chirp_impl.cpp
                          chirp_factory_impl.cpp)
+
+# Set version information for the library
+set_target_properties(chirp PROPERTIES
+    VERSION ${PROJECT_VERSION}
+    SOVERSION ${PROJECT_VERSION_MAJOR}
+    OUTPUT_NAME "chirp"
+)
                          
 target_include_directories(chirp PUBLIC ${CMAKE_SOURCE_DIR}/inc PRIVATE ${CMAKE_SOURCE_DIR}/src)
 
