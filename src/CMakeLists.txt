@@ -8,4 +8,10 @@ add_library(chirp SHARED chirp_threads.cpp
                          
 target_include_directories(chirp PUBLIC ${CMAKE_SOURCE_DIR}/inc PRIVATE ${CMAKE_SOURCE_DIR}/src)
 
+# Enable coverage for library source files
+if(ENABLE_COVERAGE)
+    target_compile_options(chirp PRIVATE --coverage)
+    target_link_libraries(chirp PRIVATE gcov)
+endif()
+
 
