@@ -8,7 +8,7 @@ class ChirpThread {
 
 public:
     ChirpThread() = default;
-    ~ChirpThread() = default;
+    ~ChirpThread();
 
     explicit ChirpThread(const std::string& service_name);
 

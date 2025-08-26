@@ -21,27 +21,52 @@ Chirp::Chirp(const std::string& service_name, ChirpError::Error& error) {
     }
 }
 
+Chirp::~Chirp() {
+    if (_impl) {
+        delete _impl;
+    }
+}
+
 void Chirp::start() {
+    if (!_impl) {
+        return; // Cannot start if not properly initialized
+    }
     _impl->start();
 }
 
 void Chirp::shutdown() {
+    if (!_impl) {
+        return; // Cannot shutdown if not properly initialized
+    }
     _impl->shutdown();
 }
 
 std::string Chirp::getServiceName() {
+    if (!_impl) {
+        return ""; // Return empty string if not properly initialized
+    }
     return _impl->getServiceName();
 }
 
 ChirpError::Error Chirp::enqueMsg(std::string& msgName, std::vector<std::any>& args) {
+    if (!_impl) {
+        return ChirpError::INVALID_SERVICE_STATE;
+    }
     return _impl->enqueMsg(msgName, args);
 }
 
 ChirpError::Error Chirp::enqueSyncMsg(std::string& msgName, std::vector<std::any>& args) {
+    if (!_impl) {
+        return ChirpError::INVALID_SERVICE_STATE;
+    }
     return _impl->enqueSyncMsg(msgName, args);
 }
 
 void Chirp::getCbMap(std::map<std::string, std::function<ChirpError::Error(std::vector<std::any>)>>*& funcMap) {
+    if (!_impl) {
+        funcMap = nullptr;
+        return;
+    }
     _impl->getCbMap(funcMap);
 }
 
