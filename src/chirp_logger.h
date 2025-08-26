@@ -24,7 +24,7 @@ public:
     void setServiceName(const std::string& serviceName);
 
 private:
-    ChirpLogger(const std::string& filename = "nice_log.txt");
+    ChirpLogger(const std::string& filename = "chirp_log.txt");
     ~ChirpLogger();
     ChirpLogger(const ChirpLogger&) = delete;
     ChirpLogger& operator=(const ChirpLogger&) = delete;
