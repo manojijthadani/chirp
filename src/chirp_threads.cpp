@@ -3,7 +3,8 @@
 
 ChirpThread::ChirpThread(const std::string& service_name)
     : _service_name(service_name), 
-      _state(ThreadState::NOT_STARTED) {
+      _state(ThreadState::NOT_STARTED),
+      _t(nullptr) {
     _mloop.setServiceName(service_name);
 }
 
@@ -42,7 +43,11 @@ void ChirpThread::getCbMap(std::map<std::string, std::function<ChirpError::Error
 
 void ChirpThread::stopThread() {  
     _mloop.stop();
-    _t->join();
+    if (_t != nullptr) {
+        _t->join();
+        delete _t;
+        _t = nullptr;
+    }
     _mloop.drainQueue();
     ChirpLogger::instance(_service_name) << "Normal shutdown. Q Drained" << std::endl;    
     _state = ThreadState::STOPPED;
@@ -50,4 +55,14 @@ void ChirpThread::stopThread() {
 
 bool ChirpThread::isThreadStopped() {
     return _state == ThreadState::STOPPED;
+}
+
+ChirpThread::~ChirpThread() {
+    if (_t != nullptr) {
+        if (_state != ThreadState::STOPPED) {
+            stopThread();
+        } else {
+            delete _t;
+        }
+    }
 }

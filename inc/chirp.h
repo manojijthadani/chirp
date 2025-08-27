@@ -52,12 +52,12 @@ public:
      * @note This constructor is provided for backward compatibility but should not be used
      *       for creating functional services. Use the service_name constructor instead.
      */
-    Chirp() = default;
-    
+    Chirp() : _impl(nullptr) {}
+
     /**
      * @brief Default destructor
      */
-    ~Chirp() = default;
+    ~Chirp();
 
     /**
      * @brief Constructor with service name
@@ -72,7 +72,7 @@ public:
      *       was created successfully before using it.
      */
     explicit Chirp(const std::string& service_name, ChirpError::Error& error);
-    
+
     /**
      * @brief Start the service
      * 
@@ -80,14 +80,14 @@ public:
      * processing messages once started.
      */
     void start();
-    
+
     /**
      * @brief Shutdown the service
      * 
      * Gracefully stops the service and waits for completion.
      */
     void shutdown();
-    
+
     /**
      * @brief Get the service name
      * @return The name of the service
@@ -116,15 +116,19 @@ public:
     ChirpError::Error registerMsgHandler(std::string msgName, 
                                          Obj* object, 
                                          Ret(Obj::*method)(Args...)) {
+        if (!_impl) {
+            return ChirpError::INVALID_SERVICE_STATE;
+        }
+
         std::map<std::string, std::function<ChirpError::Error(std::vector<std::any>)>>* functions = nullptr;
         getCbMap(functions);
-        
+
         // Check if a handler is already registered for this message name
         auto it = functions->find(msgName);
         if (it != functions->end()) {
             return ChirpError::HANDLER_ALREADY_EXISTS;
         }
-        
+
         (*functions)[msgName] = std::bind(&Chirp::executeHandler<Obj, Ret, Args...>, 
                                           this, 
                                           object, 
@@ -155,15 +159,19 @@ public:
     ChirpError::Error registerMsgHandler(std::string msgName, 
                                          Obj* object, 
                                          Ret(Obj::*method)(Args...) const) {
+        if (!_impl) {
+            return ChirpError::INVALID_SERVICE_STATE;
+        }
+
         std::map<std::string, std::function<ChirpError::Error(std::vector<std::any>)>>* functions = nullptr;
         getCbMap(functions);
-        
+
         // Check if a handler is already registered for this message name
         auto it = functions->find(msgName);
         if (it != functions->end()) {
             return ChirpError::HANDLER_ALREADY_EXISTS;
         }
-        
+
         (*functions)[msgName] = std::bind(&Chirp::executeConstHandler<Obj, Ret, Args...>, 
                                           this, 
                                           object, 
@@ -203,6 +211,16 @@ private:
     void collectArgs(std::vector<std::any>& args, T arg) {
         args.push_back(arg);
     }
+
+    /**
+     * @brief Specialization for string literals to convert them to std::string
+     * @param args Vector to collect arguments in
+     * @param arg The string literal to add
+     */
+    void collectArgs(std::vector<std::any>& args, const char* arg) {
+        args.push_back(std::string(arg));
+    }
+
     /**
      * @brief Helper function to collect arguments (recursive case)
      * @tparam T Type of the first argument
@@ -232,7 +250,8 @@ private:
     template<typename... Args>
     ChirpError::Error validateArgCount(const std::vector<std::any>& args, 
                                        const std::string& service_name) {
-        if (args.size() < sizeof...(Args) + 1) {
+        // args[0] is the message name, so we need sizeof...(Args) + 1 total elements
+        if (args.size() != sizeof...(Args) + 1) {
             return ChirpError::INVALID_ARGUMENTS;
         }
         return ChirpError::SUCCESS;
@@ -255,40 +274,40 @@ private:
         ChirpError::Error validateResult = validateArgCount<Args...>(args, 
                                                                      this->getServiceName());
         if (validateResult != ChirpError::SUCCESS) {
-                        
+  
             // If we have a validation callback, call it to capture the error
             if (_validationCallback) {
                 _validationCallback(validateResult);
             }
-            
+
             // Also call the async validation callback if it exists
             if (_asyncValidationCallback) {
                 _asyncValidationCallback(validateResult);
             }
-            
+
             return validateResult;
         }
+
         std::vector<std::any> slicedArgs(args.begin() + 1, args.end());
-        
+
         // Inline the helper logic
         ChirpError::Error result = ChirpError::SUCCESS;
         try {
             executeHandlerImpl(object, method, slicedArgs, std::index_sequence_for<Args...>{});
         } catch (const std::bad_any_cast& e) {
-            
             result = ChirpError::INVALID_ARGUMENTS;
-            
+
             // If we have a validation callback, call it to capture the error
             if (_validationCallback) {
                 _validationCallback(result);
             }
-            
+
             // Also call the async validation callback if it exists
             if (_asyncValidationCallback) {
                 _asyncValidationCallback(result);
             }
         }
-        
+
         return result;
     }
 
@@ -344,40 +363,40 @@ private:
                                           const std::vector<std::any>& args) {
         ChirpError::Error validateResult = validateArgCount<Args...>(args, this->getServiceName());
         if (validateResult != ChirpError::SUCCESS) {
-                        
+
             // If we have a validation callback, call it to capture the error
             if (_validationCallback) {
                 _validationCallback(validateResult);
             }
-            
+
             // Also call the async validation callback if it exists
             if (_asyncValidationCallback) {
                 _asyncValidationCallback(validateResult);
             }
-            
+
             return validateResult;
         }
         std::vector<std::any> slicedArgs(args.begin() + 1, args.end());
-        
+
         // Inline the helper logic
         ChirpError::Error result = ChirpError::SUCCESS;
         try {
             executeHandlerImpl(object, method, slicedArgs, std::index_sequence_for<Args...>{});
         } catch (const std::bad_any_cast& e) {
-            
+
             result = ChirpError::INVALID_ARGUMENTS;
-            
+
             // If we have a validation callback, call it to capture the error
             if (_validationCallback) {
                 _validationCallback(result);
             }
-            
+
             // Also call the async validation callback if it exists
             if (_asyncValidationCallback) {
                 _asyncValidationCallback(result);
             }
         }
-        
+
         return result;
     }
 
@@ -402,25 +421,23 @@ private:
      * @note This method is intended for internal use by syncMsg.
      */
     ChirpError::Error enqueSyncMsg(std::string& msgName, std::vector<std::any>& args);
-    
+
     /**
-     * @brief Get the callback map for message handlers
-     * @param funcMap Reference to store the callback map pointer
+     * @brief Get the callback map for internal use
+     * @param funcMap Output parameter for the function map
      * 
-     * This method provides access to the internal callback map that stores
-     * all registered message handlers. The map contains function objects that
-     * can execute the registered handlers with the appropriate arguments.
+     * This method is used internally by the template methods to access
+     * the registered message handlers.
      * 
-     * @note This method is intended for internal use by the message processing system
      * @note The returned map contains functions that return ChirpError::Error codes
      */
     void getCbMap(std::map<std::string, std::function<ChirpError::Error(std::vector<std::any>)>>*& funcMap);
-    
+
     ChirpImpl* _impl; ///< Pointer to the implementation class (PIMPL idiom)
-    
+
     // Callback to capture validation errors for sync messages
     std::function<void(ChirpError::Error)> _validationCallback;
-    
+
     // Callback to capture validation errors for async messages
     std::function<void(ChirpError::Error)> _asyncValidationCallback;
 
@@ -471,47 +488,51 @@ public:
      */
     template<typename T, typename... Args>
     ChirpError::Error postMsg(T first_arg, Args... remaining_args) {
+        if (!_impl) {
+            return ChirpError::INVALID_SERVICE_STATE;
+        }
+
         // For postMsg, we need to validate arguments synchronously
         // We'll use a different approach: create a temporary validation message
         // that gets processed immediately to check for validation errors
-        
+
         ChirpError::Error validationError = ChirpError::SUCCESS;
-        
+
         // Set up a temporary validation callback
         _asyncValidationCallback = [&validationError](ChirpError::Error error) {
             validationError = error;
         };
-        
+
         // Create and process a validation message immediately
         std::vector<std::any> args;
         args.push_back(first_arg);
         collectArgs(args, remaining_args...);
-        
+
         std::ostringstream oss;
         oss << first_arg;
         std::string msgName = oss.str();
-        
+
         // Check if handler exists
         std::map<std::string, std::function<ChirpError::Error(std::vector<std::any>)>>* functions = nullptr;
         getCbMap(functions);
-        
+
         auto it = functions->find(msgName);
         if (it == functions->end()) {
             _asyncValidationCallback = nullptr;
             return ChirpError::HANDLER_NOT_FOUND;
         }
-        
+
         // Process the message immediately to trigger validation
         ChirpError::Error result = (it->second)(args);
-        
+
         // Clear the validation callback
         _asyncValidationCallback = nullptr;
-        
+
         // If validation failed, return the error
         if (result != ChirpError::SUCCESS) {
             return result;
         }
-        
+
         // If validation passed, enqueue the message normally
         ChirpError::Error error = enqueMsg(msgName, args);
         return error;
@@ -534,13 +555,17 @@ public:
      */
     template<typename T, typename... Args>
     ChirpError::Error syncMsg(T first_arg, Args... remaining_args) {
+        if (!_impl) {
+            return ChirpError::INVALID_SERVICE_STATE;
+        }
+
         ChirpError::Error validationError = ChirpError::SUCCESS;
-        
+
         // Set up validation callback to capture errors
         _validationCallback = [&validationError](ChirpError::Error error) {
             validationError = error;
         };
-        
+
         ChirpError::Error error = ChirpError::SUCCESS;
         ChirpError::Error buildError = buildAndEnqueue(
             [this, &error](std::string& msg, std::vector<std::any>& args) { 
@@ -548,15 +573,15 @@ public:
             },
             first_arg, remaining_args...
         );
-        
+
         // Clear the validation callback
         _validationCallback = nullptr;
-        
+
         if (buildError != ChirpError::SUCCESS) {
             return buildError;
         }
-        
+
         // Return validation error if one occurred, otherwise return the enqueue error
         return (validationError != ChirpError::SUCCESS) ? validationError : error;
     }
-}; 
+};
