@@ -35,21 +35,21 @@ ChirpError::Error error = service.registerMsgHandler("SomeMessage",
                                                      &handlers,
                                                      &MessageHandlers::handler);
 if (error != ChirpError::SUCCESS) {
-    std::cout << "Failed to register MessageType handler: " 
-              << ChirpError::errorToString(error) << std::endl;
-    return;
+    // Handle error
 }
 
+...
+    
 // Any other piece of code that has an access to service can invoke the 
 // handler with a postMsg(..) or syncMsg(..) call. Example shown below
 int arg1;
 std::string arg2;
 std::vector<int> arg3;
-// Note: The order and type of parameters of the arguments must match that of the handler.
+
+// Note: The order and type of arguments must match that of the handler.
 ChirpError::Error error = service.postMsg("SomeMessage", arg1, arg2, arg3);
 if (error != ChirpError::SUCCESS) {
-    std::cout << "Failed to post message: " << ChirpError::errorToString(error);
-    // Handle the error appropriately
+    // Handle error
 }
 
 ```
