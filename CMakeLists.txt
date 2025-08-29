@@ -10,8 +10,8 @@ option(ENABLE_COVERAGE "Enable code coverage" OFF)
 # Add src directory (always built)
 add_subdirectory(src)
 
-# Option to build examples (disabled by default)
-option(BUILD_EXAMPLES "Build example programs" OFF)
+# Option to build examples (enabled by default)
+option(BUILD_EXAMPLES "Build example programs" ON)
 
 # Add example directory only if BUILD_EXAMPLES is enabled
 if(BUILD_EXAMPLES)
