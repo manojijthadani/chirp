@@ -27,18 +27,20 @@ Chirp::~Chirp() {
     }
 }
 
-void Chirp::start() {
+ChirpError::Error Chirp::start() {
     if (!_impl) {
-        return; // Cannot start if not properly initialized
+        return ChirpError::INVALID_SERVICE_STATE; // Cannot start if not properly initialized
     }
     _impl->start();
+    return ChirpError::SUCCESS;
 }
 
-void Chirp::shutdown() {
+ChirpError::Error Chirp::shutdown() {
     if (!_impl) {
-        return; // Cannot shutdown if not properly initialized
+        return ChirpError::INVALID_SERVICE_STATE; // Cannot shutdown if not properly initialized
     }
     _impl->shutdown();
+    return ChirpError::SUCCESS;
 }
 
 std::string Chirp::getServiceName() {

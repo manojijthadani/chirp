@@ -78,15 +78,21 @@ public:
      * 
      * Initializes and starts the service thread. The service will begin
      * processing messages once started.
+     * 
+     * @return ChirpError::SUCCESS if the service started successfully,
+     *         ChirpError::INVALID_SERVICE_STATE if the service is not properly initialized
      */
-    void start();
+    ChirpError::Error start();
 
     /**
      * @brief Shutdown the service
      * 
      * Gracefully stops the service and waits for completion.
+     * 
+     * @return ChirpError::SUCCESS if the service shutdown successfully,
+     *         ChirpError::INVALID_SERVICE_STATE if the service is not properly initialized
      */
-    void shutdown();
+    ChirpError::Error shutdown();
 
     /**
      * @brief Get the service name
