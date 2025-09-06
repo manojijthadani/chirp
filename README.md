@@ -80,9 +80,7 @@ cmake . --build
 
 ***Abhilash Kothapalli***
 
-​	E-Mail :  k.abhilash@outlook.com
-
-​	LinkedIn :
+​	E-Mail :  k.abhilash@gmail.com
 
 ## Credits
 
