@@ -85,6 +85,7 @@ cmake . --build
 ## Credits
 
 [Cursor](https://cursor.com/agents)
+[AI Unit Test Builder](https://github.com/holasoymalva/AI-Unit-Test-Builder)
 
 ## License
 
