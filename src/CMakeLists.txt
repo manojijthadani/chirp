@@ -4,7 +4,8 @@ add_library(chirp SHARED chirp_threads.cpp
                          message.cpp 
                          chirp.cpp 
                          chirp_impl.cpp
-                         chirp_factory_impl.cpp)
+                         chirp_factory_impl.cpp
+                         chirp_timer.cpp)
 
 # Set version information for the library
 set_target_properties(chirp PROPERTIES

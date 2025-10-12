@@ -188,26 +188,25 @@ int main() {
     if (error != ChirpError::SUCCESS) {
         std::cout << "Failed to sync TestIntegerTypes (negative test): " << ChirpError::errorToString(error) << std::endl;
     }
-    // This should fail. Invalid order of arguments.
+
+    // This should fail. Invalid order of arguments & number of arguments.
     error = svc1.syncMsg("TestIntegerTypes", (short)100, 2, (long)1000, (long long)10000);
     if (error != ChirpError::SUCCESS) {
         std::cout << "Failed to sync TestIntegerTypes (negative test): " << ChirpError::errorToString(error) << std::endl;
     }
-    
-    error = svc1.postMsg("TestIntegerTypes", 2);
+
+    // This should fail. Invalid number of arguments.
+    error = svc1.postMsg("TestIntegerTypes", (int)2);
     if (error != ChirpError::SUCCESS) {
         std::cout << "Failed to post TestIntegerTypes (negative test): " << ChirpError::errorToString(error) << std::endl;
     }
+    
     // This should fail. Invalid type of arguments.
     error = svc1.postMsg("TestIntegerTypes", std::string("Negative test"));
     if (error != ChirpError::SUCCESS) {
         std::cout << "Failed to post TestIntegerTypes (negative test): " << ChirpError::errorToString(error) << std::endl;
     }
-    // This should fail. Invalid order of arguments.
-    error = svc1.postMsg("TestIntegerTypes", (short)100, 2, (long)1000, (long long)10000);
-    if (error != ChirpError::SUCCESS) {
-        std::cout << "Failed to post TestIntegerTypes (negative test): " << ChirpError::errorToString(error) << std::endl;
-    }
+    
     // Wait for 3 seconds to allow the services to process the messages before
     // shutting down the application.
     std::this_thread::sleep_for(std::chrono::seconds(3));
