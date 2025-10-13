@@ -7,13 +7,14 @@
 2. [Project Overview](#project-overview)
 3. [System Architecture](#system-architecture)
 4. [Factory Pattern](#factory-pattern)
-5. [Threading Model](#threading-model)
-6. [Message Passing System](#message-passing-system)
-7. [Logging System](#logging-system)
-8. [API Design](#api-design)
-9. [Build System](#build-system)
-10. [Testing Strategy](#testing-strategy)
-11. [Future Enhancements](#future-enhancements)
+5. [Chirp Timer](#chirp-timer)
+6. [Threading Model](#threading-model)
+7. [Message Passing System](#message-passing-system)
+8. [Logging System](#logging-system)
+9. [API Design](#api-design)
+10. [Build System](#build-system)
+11. [Testing Strategy](#testing-strategy)
+12. [Future Enhancements](#future-enhancements)
 
 ## Purpose
 
@@ -448,6 +449,209 @@ public:
 4. **Extensibility**: New factory implementations can be created without changing client code
 5. **Thread Safety**: Built-in synchronization ensures safe concurrent access
 6. **Memory Management**: Automatic cleanup of services when factory is destroyed
+
+## Chirp Timer
+
+The Chirp Timer subsystem provides a thread-based timer mechanism that integrates seamlessly with the Chirp messaging framework. It allows developers to schedule time-based message delivery to Chirp services, supporting both one-time and continuous timer modes. Every ChirpTimer instance creates a thread that is responsible for message delivery until the thread is shutdown or the timer stopped.
+
+### Timer Architecture
+
+The timer system consists of two main components:
+
+1. **IChirpTimer Interface** (`inc/ichirp_timer.h`): Abstract interface defining the contract for timer implementations
+2. **ChirpTimer Implementation** (`src/chirp_timer.h`, `src/chirp_timer.cpp`): Concrete implementation providing thread-based timer functionality
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Timer Layer                              │
+│  ┌────────────────────────────────────────────────────────┐ │
+│  │              ChirpTimer                                │ │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────┐ │ │
+│  │  │ Timer       │  │ Thread      │  │ Message         │ │ │
+│  │  │ Thread      │  │ Management  │  │ Dispatch        │ │ │
+│  │  │             │  │             │  │                 │ │ │
+│  │  └─────────────┘  └─────────────┘  └─────────────────┘ │ │
+│  └────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+                              │
+┌─────────────────────────────────────────────────────────────┐
+│                    Chirp Service Layer                      │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌──────────────┐ │
+│  │   Service 1     │  │   Service 2     │  │   Service N  │ │
+│  │   (Handlers)    │  │   (Handlers)    │  │  (Handlers)  │ │
+│  └─────────────────┘  └─────────────────┘  └──────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Timer Features
+
+- **Two Timer Modes**:
+  - **ONE_TIME**: Timer fires once and stops automatically
+  - **CONTINUOUS**: Timer fires repeatedly at specified intervals until stopped
+- **Thread-Safe Operations**: All timer operations are protected by mutexes
+- **Named Timers**: Optional timer names for identification and logging
+- **Flexible Configuration**: Timer parameters can be set before starting
+- **Graceful Shutdown**: Timers stop cleanly without resource leaks
+- **Chirp Integration**: Direct message posting to Chirp services when timer fires
+
+### Timer State Management
+
+The ChirpTimer maintains a state machine to ensure proper timer operation:
+
+- **STOPPED**: Initial state, timer is not running
+- **STARTING**: Timer is in the process of starting up
+- **RUNNING**: Timer is actively running and will fire at intervals
+- **STOPPING**: Timer is in the process of shutting down
+
+State transitions are atomic and thread-safe, ensuring consistent behavior across concurrent operations.
+
+### Thread Safety
+
+The timer implementation uses multiple synchronization mechanisms:
+
+1. **_configMutex**: Protects configuration parameters (mode, duration, chirp service, message name)
+   - Used during `configure()`, `start()`, `stop()`, and getter methods
+   - Marked mutable to allow locking in const methods
+2. **_stopMutex**: Works with condition variable for timer thread synchronization
+   - Required by `std::condition_variable` for proper wait/notify operations
+3. **Atomic State**: `_state` and `_shouldStop` use atomic operations for lock-free access
+
+### Timer Usage Pattern
+
+```cpp
+// Create a Chirp service
+ChirpError::Error error;
+Chirp chirpService("TimerService", error);
+if (error != ChirpError::SUCCESS) {
+    std::cout << "Failed to create Chirp service" << std::endl;
+    return;
+}
+
+// Create handler class and register message handlers
+class TimerHandlers {
+public:
+    void onTimerFired() {
+        std::cout << "Timer fired!" << std::endl;
+    }
+};
+
+TimerHandlers handlers;
+error = chirpService.registerMsgHandler("TimerMessage", &handlers, &TimerHandlers::onTimerFired);
+if (error != ChirpError::SUCCESS) {
+    std::cout << "Failed to register handler" << std::endl;
+    return;
+}
+
+// Start the chirp service
+chirpService.start();
+
+// Create a timer with optional name
+ChirpTimer timer("MyTimer");
+
+// Configure timer with all parameters in a single call
+timer.configure(TimerMode::CONTINUOUS,            // Timer mode
+                std::chrono::milliseconds(1000),  // Duration
+                &chirpService,                    // Target Chirp service
+                "TimerMessage");                  // Message to send
+
+// Start the timer
+timer.start();
+
+// Timer will now fire every 1 second and send "TimerMessage" to chirpService
+// The registered handler (onTimerFired) will be called each time
+
+// Stop the timer when done
+timer.stop();
+
+// Shutdown the service
+chirpService.shutdown();
+```
+
+### Timer Configuration
+
+The `configure()` method provides a single API to set all timer parameters:
+
+```cpp
+ChirpError::Error configure(TimerMode mode, 
+                           const std::chrono::milliseconds& duration,
+                           Chirp* chirpObj, 
+                           const std::string& messageName);
+```
+
+**Parameters:**
+- `mode`: Timer mode (ONE_TIME or CONTINUOUS)
+- `duration`: Time interval between timer fires
+- `chirpObj`: Pointer to the Chirp service that will receive messages
+- `messageName`: Name of the message to post to the chirpObj when timer fires
+
+**Validation:**
+- Timer must be stopped before reconfiguration
+- Duration must be greater than zero
+- Chirp object pointer must not be null
+- Message name must not be empty
+
+### Timer Lifecycle
+
+1. **Creation**: Timer is created with optional name
+2. **Configuration**: All parameters are set via `configure()`
+3. **Start**: Timer thread is spawned and begins countdown
+4. **Running**: Timer waits for duration, then posts message to Chirp service
+5. **Fire**: Message is sent to the configured Chirp service
+6. **Repeat/Stop**: For continuous timers, cycle repeats; one-time timers stop automatically
+7. **Shutdown**: Timer is stopped, thread is joined, resources are cleaned up
+
+### Error Handling
+
+The timer provides comprehensive error handling:
+
+- **INVALID_SERVICE_STATE**: Attempting to configure or start a running timer
+- **INVALID_ARGUMENTS**: Invalid duration, null chirp object, or empty message name
+- **INVALID_CONFIGURATION**: Configuration validation failed before starting
+- **THREAD_ERROR**: Failed to create or start timer thread
+
+All methods return `ChirpError::Error` codes for consistent error handling across the framework.
+
+### Implementation Details
+
+#### Memory Management
+
+The timer uses `std::nothrow` for memory allocations and checks for null pointers, providing graceful error handling without exceptions. This follows the user's preference for explicit error handling over exception-based approaches.
+
+#### Thread Synchronization
+
+The timer thread uses a condition variable (`_stopCondition`) with a timeout to efficiently wait for the duration or stop signal:
+
+```cpp
+bool timeout = _stopCondition.wait_for(lock, _duration, 
+                                      [this] { return _shouldStop.load(); });
+```
+
+This approach:
+- Allows immediate wakeup when `stop()` is called
+- Avoids busy-waiting or polling
+- Ensures precise timing when timer fires
+
+### Integration with Chirp Services
+
+When a timer fires, it posts a message to the configured Chirp service using `postMsg()`. The message is then processed by the service thread according to the normal Chirp message handling flow:
+
+1. Timer fires (duration elapsed)
+2. Timer calls `_chirpObj->postMsg(_messageName)`
+3. Message is enqueued in the Chirp service's message queue
+4. Service thread dequeues and processes the message
+5. Registered handler is executed in the service thread context
+
+This integration ensures that timer events are processed in the same thread-safe, ordered manner as other Chirp messages.
+
+### Benefits of Chirp Timer
+
+1. **Seamless Integration**: Works naturally with existing Chirp services and message handlers
+2. **Thread Safety**: All operations are thread-safe and can be called from any thread
+3. **Flexible Timing**: Supports both one-time and continuous timer modes
+4. **Clean API**: Simple, intuitive interface with comprehensive error handling
+5. **Resource Efficient**: Uses condition variables for efficient waiting
+6. **Graceful Shutdown**: Properly stops timer thread and cleans up resources
+7. **Configurable**: Optional timer names for identification and logging
 
 ## Testing Strategy
 
