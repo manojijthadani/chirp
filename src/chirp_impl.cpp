@@ -72,3 +72,11 @@ void ChirpImpl::getCbMap(std::map<std::string, std::function<ChirpError::Error(s
     _nthread->getCbMap(funcMap);
 }
 
+void ChirpImpl::addChirpTimer(ChirpTimer* timer) {
+    _nthread->addChirpTimer(timer);
+}
+
+void ChirpImpl::removeChirpTimer(ChirpTimer* timer) {
+    _nthread->removeChirpTimer(timer);
+}
+

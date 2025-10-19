@@ -1,5 +1,6 @@
 #pragma once
 #include "chirp_error.h"
+#include "chirp_timer.h"
 
 class ChirpImpl {
 public:
@@ -13,9 +14,11 @@ public:
     ChirpError::Error enqueMsg(std::string& msgName, std::vector<std::any>& args);
     ChirpError::Error enqueSyncMsg(std::string& msgName, std::vector<std::any>& args);
     void getCbMap(std::map<std::string, std::function<ChirpError::Error(std::vector<std::any>)>>*& funcMap);
+    void addChirpTimer(ChirpTimer* timer);
+    void removeChirpTimer(ChirpTimer* timer);
 
 private:
     void waitUntilServiceStopped();
     std::string _service_name;
     ChirpThread* _nthread;
-}; 
+};

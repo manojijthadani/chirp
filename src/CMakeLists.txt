@@ -1,11 +1,12 @@
 add_library(chirp SHARED chirp_threads.cpp 
-                         chirp_logger.cpp 
-                         message_loop.cpp 
-                         message.cpp 
-                         chirp.cpp 
-                         chirp_impl.cpp
-                         chirp_factory_impl.cpp
-                         chirp_timer.cpp)
+                        chirp_logger.cpp 
+                        message_loop.cpp 
+                        message.cpp 
+                        chirp.cpp 
+                        chirp_impl.cpp
+                        chirp_factory_impl.cpp
+                        chirp_timer.cpp
+                        timer_mgr.cpp)
 
 # Set version information for the library
 set_target_properties(chirp PROPERTIES

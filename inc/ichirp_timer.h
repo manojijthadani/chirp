@@ -16,17 +16,6 @@
 #include <string>
 #include "chirp_error.h"
 
-// Forward declaration to prevent inclusion of private headers
-class Chirp;
-
-/**
- * @brief Timer mode enumeration
- */
-enum class TimerMode {
-    ONE_TIME,      /**< Timer fires once and stops */
-    CONTINUOUS     /**< Timer repeats indefinitely */
-};
-
 /**
  * @brief Abstract timer interface for the Chirp framework
  * 
@@ -52,36 +41,21 @@ public:
     virtual ~IChirpTimer() = default;
 
     /**
-     * @brief Constructor with optional timer name
-     * @param name Optional name for the timer (defaults to empty string)
-     * 
-     * Creates a timer instance with an optional name that can be used
-     * for identification and logging purposes.
+     * @brief Default constructor
      */
-    IChirpTimer(const std::string& name = "") {
-        // Base class constructor - intentionally empty
-        (void)name; // Suppress unused parameter warning
-    }
+    IChirpTimer() = default;
 
     /**
-     * @brief Configure the timer with mode, duration, and Chirp service settings
-     * @param mode The timer mode (one-time or continuous)
+     * @brief Configure the timer with message and duration
+     * @param messageToDeliver The message to deliver when timer fires
      * @param duration The duration for the timer interval
-     * @param chirpObj Pointer to the Chirp service instance
-     * @param messageName The name of the message to send
-     * @param args Vector of arguments to pass with the message
      * @return ChirpError::Error indicating success or failure
      * 
-     * @note This method must be called before starting the timer
      * @note This method can be called multiple times to reconfigure the timer
      * @note Timer must be stopped before reconfiguration
-     * @note The message will be posted to the Chirp service when the timer expires
-     * @note Arguments are passed as a vector of std::any for type flexibility
      */
-    virtual ChirpError::Error configure(TimerMode mode, 
-                                      const std::chrono::milliseconds& duration,
-                                      Chirp* chirpObj, 
-                                      const std::string& messageName) = 0; 
+    virtual ChirpError::Error configure(std::string messageToDeliver, 
+                                      const std::chrono::milliseconds& duration) = 0; 
 
 
     /**
@@ -117,7 +91,6 @@ public:
      * @brief Get the current timer mode
      * @return The current timer mode
      */
-    virtual TimerMode getMode() const = 0;
 
     /**
      * @brief Get the current timer duration
@@ -129,5 +102,4 @@ public:
      * @brief Get the timer name
      * @return The name of the timer
      */
-    virtual std::string getName() const = 0;
 };

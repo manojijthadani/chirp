@@ -32,13 +32,14 @@
 class ChirpTimer : public IChirpTimer {
 public:
     /**
-     * @brief Constructor with optional timer name
-     * @param name Optional name for the timer (defaults to empty string)
+     * @brief Constructor with message and duration
+     * @param messageToDeliver Message to deliver when timer fires
+     * @param duration Timer duration in milliseconds
      * 
-     * This constructor creates a new ChirpTimer instance. The timer must be
-     * configured with mode and duration before it can be started.
+     * This constructor creates a new ChirpTimer instance with the specified
+     * message and duration. The timer can be started immediately after construction.
      */
-    ChirpTimer(const std::string& name = "");
+    ChirpTimer(std::string messageToDeliver, const std::chrono::milliseconds& duration);
 
     
     /**
@@ -49,16 +50,14 @@ public:
     ~ChirpTimer();
 
     // Implementation of IChirpTimer interface
-    ChirpError::Error configure(TimerMode mode, 
-                               const std::chrono::milliseconds& duration,
-                               Chirp* chirpObj, 
-                               const std::string& messageName) override;
+    ChirpError::Error configure(std::string messageToDeliver,
+                               const std::chrono::milliseconds& duration) override;
     ChirpError::Error start() override;
     ChirpError::Error stop() override;
     bool isRunning() const override;
-    TimerMode getMode() const override;
     std::chrono::milliseconds getDuration() const override;
-    std::string getName() const override;
+    std::chrono::steady_clock::time_point getTimerStartTime() const;
+    std::string getMessage() const;
 
 private:
     /**
@@ -71,19 +70,7 @@ private:
         STOPPING    /**< Timer is shutting down */
     };
 
-    /**
-     * @brief Send the configured message to the chirp service
-     * @return ChirpError::Error indicating success or failure
-     */
-    ChirpError::Error sendMessage();
 
-    /**
-     * @brief Main timer thread function
-     * 
-     * This function runs in the timer thread and handles the actual
-     * timer logic, including waiting for the duration and executing callbacks.
-     */
-    void timerThreadFunction();
 
     /**
      * @brief Validate timer configuration before starting
@@ -93,13 +80,8 @@ private:
     
     std::atomic<TimerState> _state;              /**< Current timer state */
     mutable std::mutex _configMutex;             /**< Mutex for configuration changes */
-    std::mutex _stopMutex;                       /**< Mutex for stop condition variable */
-    std::condition_variable _stopCondition;      /**< Condition variable for stop signaling */
     std::atomic<bool> _shouldStop;               /**< Flag to signal timer thread to stop */
-    std::string _name;                           /**< Timer name for identification */
-    TimerMode _mode;                             /**< Current timer mode */
+    std::string _messageToDeliver;               /**< Message to deliver when timer fires */
     std::chrono::milliseconds _duration;         /**< Timer duration */ 
-    Chirp* _chirpObj;                            /**< Chirp service object for message sending */
-    std::string _messageName;                    /**< Message name to send */
-    std::thread _timerThread;                    /**< Timer thread handle */
+    std::chrono::steady_clock::time_point _startTime;  /**< Timer start time */
 };

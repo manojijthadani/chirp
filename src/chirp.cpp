@@ -4,6 +4,7 @@
 #include "chirp_threads.h"
 #include "chirp_logger.h"
 #include "chirp_impl.h"
+#include "chirp_timer.h"
 
 // A simple reflection pattern implemented to abstract Chirp class.
 // Cannot implement a typical interface pattern because templated functions 
@@ -70,5 +71,49 @@ void Chirp::getCbMap(std::map<std::string, std::function<ChirpError::Error(std::
         return;
     }
     _impl->getCbMap(funcMap);
+}
+
+ChirpError::Error Chirp::addChirpTimer(IChirpTimer* timer) {
+    ChirpError::Error result = ChirpError::SUCCESS;
+    
+    if (!_impl) {
+        result = ChirpError::INVALID_SERVICE_STATE;
+    } else if (!timer) {
+        result = ChirpError::INVALID_ARGUMENTS;
+    } else {
+        // Dynamic cast from IChirpTimer to ChirpTimer
+        ChirpTimer* chirpTimer = dynamic_cast<ChirpTimer*>(timer);
+        if (!chirpTimer) {
+            ChirpLogger::instance(getServiceName()) << "Failed to cast IChirpTimer to ChirpTimer" << std::endl;
+            result = ChirpError::INVALID_ARGUMENTS;
+        } else {
+            _impl->addChirpTimer(chirpTimer);
+            result = ChirpError::SUCCESS;
+        }
+    }
+    
+    return result;
+}
+
+ChirpError::Error Chirp::removeChirpTimer(IChirpTimer* timer) {
+    ChirpError::Error result = ChirpError::SUCCESS;
+    
+    if (!_impl) {
+        result = ChirpError::INVALID_SERVICE_STATE;
+    } else if (!timer) {
+        result = ChirpError::INVALID_ARGUMENTS;
+    } else {
+        // Dynamic cast from IChirpTimer to ChirpTimer
+        ChirpTimer* chirpTimer = dynamic_cast<ChirpTimer*>(timer);
+        if (!chirpTimer) {
+            ChirpLogger::instance(getServiceName()) << "Failed to cast IChirpTimer to ChirpTimer" << std::endl;
+            result = ChirpError::INVALID_ARGUMENTS;
+        } else {
+            _impl->removeChirpTimer(chirpTimer);
+            result = ChirpError::SUCCESS;
+        }
+    }
+    
+    return result;
 }
 

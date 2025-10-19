@@ -19,6 +19,7 @@
 #include <iostream>
 #include <sstream>
 #include "chirp_error.h"
+#include "ichirp_timer.h"
 
 
 // Note: Forward declaration to prevent the inclusion of any private headers.
@@ -185,6 +186,32 @@ public:
                                           std::placeholders::_1);
         return ChirpError::SUCCESS;
     }
+
+    /**
+     * @brief Add a timer to the service
+     * @param timer Pointer to IChirpTimer instance to add
+     * @return ChirpError::Error indicating success or failure
+     * 
+     * Adds the provided timer to the service's timer manager. The timer
+     * will be managed by the service and can fire events based on its configuration.
+     * 
+     * @note The timer must be properly configured before being added
+     * @note This method is thread-safe
+     */
+    ChirpError::Error addChirpTimer(IChirpTimer* timer);
+
+    /**
+     * @brief Remove a timer from the service
+     * @param timer Pointer to IChirpTimer instance to remove
+     * @return ChirpError::Error indicating success or failure
+     * 
+     * Removes the provided timer from the service's timer manager. After removal,
+     * the timer will no longer fire events through this service.
+     * 
+     * @note This method is thread-safe
+     * @note The timer instance is not deleted by this method
+     */
+    ChirpError::Error removeChirpTimer(IChirpTimer* timer);
 
     /**
      * @brief Get the version of the Chirp API
