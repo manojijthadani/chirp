@@ -1,6 +1,6 @@
 #include <thread>
 
-#include "chirp.h"
+#include "ichirp.h"
 #include "chirp_threads.h"
 #include "chirp_logger.h"
 #include "chirp_impl.h"

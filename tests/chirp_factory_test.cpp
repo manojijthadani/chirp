@@ -1,5 +1,5 @@
 #include "chirp_factory.h"
-#include "chirp.h"
+#include "ichirp.h"
 #include "chirp_error.h"
 #include <iostream>
 #include <cassert>

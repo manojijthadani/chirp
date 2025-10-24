@@ -6,7 +6,7 @@
 #include <list>
 #include <deque>
 
-#include "chirp.h"
+#include "ichirp.h"
 #include "chirp_error.h"
 
 class ServiceMsgHandlers {
@@ -64,12 +64,12 @@ void ServiceMsgHandlers::TestVoidTypesHandler() {
 }
 
 int main() {
-    std::cout << "Chirp API version: " << Chirp::getVersion() << std::endl;
+    std::cout << "Chirp API version: " << IChirp::getVersion() << std::endl;
 
     ServiceMsgHandlers mh;
 
     ChirpError::Error error;
-    Chirp svc1("Service1", error);
+    IChirp svc1("Service1", error);
     if (error != ChirpError::SUCCESS) {
         std::cout << "Failed to create Service1: " << ChirpError::errorToString(error) << std::endl;
         return 1;
@@ -99,7 +99,7 @@ int main() {
     }
     svc1.start();
 
-    Chirp svc2("Service2", error);
+    IChirp svc2("Service2", error);
     if (error != ChirpError::SUCCESS) {
         std::cout << "Failed to create Service2: " << ChirpError::errorToString(error) << std::endl;
         return 1;

@@ -41,7 +41,10 @@ void MessageLoop::spin() {
           if (!lockAcquired) 
               fireTimerHandlers(st_thread);
         }
-      } 
+      } else {
+          // Queue is not empty, we should process messages
+          lockAcquired = true;
+      }
 
       if (lockAcquired) {
           lockAcquired = false;

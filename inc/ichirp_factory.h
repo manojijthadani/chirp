@@ -16,12 +16,12 @@
 #include "chirp_error.h"
 
 // Forward declaration to prevent inclusion of private headers
-class Chirp;
+class IChirp;
 
 /**
  * @brief Abstract factory interface for creating and managing Chirp services
  * 
- * IChirpFactory defines the interface for creating and managing Chirp service instances.
+ * IChirpFactory defines the interface for creating and managing IChirp service instances.
  * This interface ensures that different factory implementations can be used
  * while maintaining the same API contract.
  * 
@@ -42,22 +42,22 @@ public:
     virtual ~IChirpFactory() = default;
 
     /**
-     * @brief Create a new Chirp service instance
+     * @brief Create a new IChirp service instance
      * @param service_name The name of the service to create
      * @param service Output parameter for the created service pointer
      * @return ChirpError::Error indicating success or failure
      * 
-     * @note If successful, *service will point to the created Chirp instance
+     * @note If successful, *service will point to the created IChirp instance
      * @note If failed, *service will be set to nullptr
      */
-    virtual ChirpError::Error createService(const std::string& service_name, Chirp** service) = 0;
+    virtual ChirpError::Error createService(const std::string& service_name, IChirp** service) = 0;
 
     /**
      * @brief Get an existing service by name
      * @param service_name The name of the service to retrieve
      * @return Pointer to the service if it exists, nullptr otherwise
      */
-    virtual Chirp* getService(const std::string& service_name) = 0;
+    virtual IChirp* getService(const std::string& service_name) = 0;
 
     /**
      * @brief Destroy a service by name

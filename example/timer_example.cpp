@@ -14,7 +14,7 @@
  */
 
 #include "chirp_timer.h"
-#include "chirp.h"
+#include "ichirp.h"
 #include "chirp_error.h"
 #include <iostream>
 #include <chrono>
@@ -49,7 +49,7 @@ int main() {
     
     // Create a Chirp service
     ChirpError::Error error = ChirpError::SUCCESS;
-    Chirp chirpService("TimerService", error);
+    IChirp chirpService("TimerService", error);
     if (error != ChirpError::SUCCESS) {
         std::cout << "Failed to create Chirp service" << std::endl;
         return 1;

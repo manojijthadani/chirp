@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 #include <mutex>
+#include <condition_variable>
 
 class Message {
 
@@ -32,4 +33,6 @@ private:
     std::vector<std::any> _args;
     MessageType _type;
     std::mutex _sync_mtx;
+    std::condition_variable _sync_cv;
+    bool _sync_done;
 };

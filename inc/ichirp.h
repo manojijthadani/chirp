@@ -1,11 +1,11 @@
 /**
- * @file chirp.h
+ * @file ichirp.h
  * @brief Main service interface for Chirp framework
  * @author Chirp Team 
  * @date 2025
  * @version 1.0
  * 
- * This file defines the Chirp class, which provides a high-level interface
+ * This file defines the IChirp class, which provides a high-level interface
  * for creating and managing services with message-passing capabilities.
  * The class uses template metaprogramming to provide type-safe message handling.
  */
@@ -30,7 +30,7 @@ class ChirpImpl;
 /**
  * @brief Main service class for Chirp framework
  * 
- * Chirp provides a high-level interface for creating services that can
+ * IChirp provides a high-level interface for creating services that can
  * handle typed messages asynchronously. Each service runs in its own thread
  * and processes messages through registered handlers.
  * 
@@ -39,40 +39,40 @@ class ChirpImpl;
  * 
  * @example
  * @code
- * Chirp service("MyService");
+ * IChirp service("MyService");
  * service.registerMsgHandler("TestMessage", myHandler);
  * service.start();
  * service.postMsg("TestMessage", 42, "hello");
  * service.shutdown();
  * @endcode
  */
-class Chirp {
+class IChirp {
 public:
     /**
      * @brief Default constructor
      * @note This constructor is provided for backward compatibility but should not be used
      *       for creating functional services. Use the service_name constructor instead.
      */
-    Chirp() : _impl(nullptr) {}
+    IChirp() : _impl(nullptr) {}
 
     /**
      * @brief Default destructor
      */
-    ~Chirp();
+    ~IChirp();
 
     /**
      * @brief Constructor with service name
      * @param service_name The name of the service for identification and logging
      * @param error Output parameter for error status
      * 
-     * This constructor creates a new Chirp service instance. If any resource allocation
+     * This constructor creates a new IChirp service instance. If any resource allocation
      * fails during construction, the error parameter will be set to the appropriate
      * error code and the service will not be fully initialized.
      * 
      * @note Always check the error parameter after construction to ensure the service
      *       was created successfully before using it.
      */
-    explicit Chirp(const std::string& service_name, ChirpError::Error& error);
+    explicit IChirp(const std::string& service_name, ChirpError::Error& error);
 
     /**
      * @brief Start the service
@@ -136,7 +136,7 @@ public:
             return ChirpError::HANDLER_ALREADY_EXISTS;
         }
 
-        (*functions)[msgName] = std::bind(&Chirp::executeHandler<Obj, Ret, Args...>, 
+        (*functions)[msgName] = std::bind(&IChirp::executeHandler<Obj, Ret, Args...>, 
                                           this, 
                                           object, 
                                           method, std::placeholders::_1);
@@ -179,7 +179,7 @@ public:
             return ChirpError::HANDLER_ALREADY_EXISTS;
         }
 
-        (*functions)[msgName] = std::bind(&Chirp::executeConstHandler<Obj, Ret, Args...>, 
+        (*functions)[msgName] = std::bind(&IChirp::executeConstHandler<Obj, Ret, Args...>, 
                                           this, 
                                           object, 
                                           method, 
@@ -618,3 +618,4 @@ public:
         return (validationError != ChirpError::SUCCESS) ? validationError : error;
     }
 };
+

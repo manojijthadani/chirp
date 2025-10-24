@@ -8,7 +8,7 @@
 
 #include "chirp_timer.h"
 #include "chirp_logger.h"
-#include "chirp.h"
+#include "ichirp.h"
 #include <iostream>
 
 
