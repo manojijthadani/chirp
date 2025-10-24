@@ -19,13 +19,13 @@
 #include <iostream>
 #include <sstream>
 #include "chirp_error.h"
-#include "ichirp_timer.h"
 
 
 // Note: Forward declaration to prevent the inclusion of any private headers.
 // This keeps the spirit of data abstraction, so API consumer shall include only
 // this one public header file.
 class ChirpImpl;
+class IChirpTimer;   
 
 /**
  * @brief Main service class for Chirp framework
