@@ -15,7 +15,7 @@ ChirpLogger& ChirpLogger::instance(const std::string& serviceName) {
 }
 
 ChirpLogger::ChirpLogger(const std::string& filename) {
-    const char* debug_env = std::getenv("NICE_SERVICES_DEBUG");
+    const char* debug_env = std::getenv("CHIRP_SERVICES_DEBUG");
     if (debug_env && std::string(debug_env) == "1") {
         // Open in write-only mode, truncating the file each time
         _ofs.open(filename, std::ios::out | std::ios::trunc);

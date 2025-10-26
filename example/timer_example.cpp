@@ -38,6 +38,13 @@ public:
         return ChirpError::SUCCESS;
     }
     
+    // Regular (non-timer) message handler
+    ChirpError::Error onRegularEvent(const std::string& payload) {
+        std::cout << "[REGULAR] Received: " << payload << std::endl;
+        std::cout.flush();
+        return ChirpError::SUCCESS;
+    }
+    
 private:
     int slowTickCount;
     int fastTickCount;
@@ -58,7 +65,7 @@ int main() {
     // Create handler instance
     TimerHandler handler;
     
-    // Register message handlers for timer events
+    // Register message handlers for timer and regular events
     std::cout << "Registering message handler 'SlowTimerTick'..." << std::endl;
     error = chirpService.registerMsgHandler("SlowTimerTick", &handler, &TimerHandler::onSlowTimerTick);
     if (error != ChirpError::SUCCESS) {
@@ -70,6 +77,13 @@ int main() {
     error = chirpService.registerMsgHandler("FastTimerTick", &handler, &TimerHandler::onFastTimerTick);
     if (error != ChirpError::SUCCESS) {
         std::cout << "Failed to register fast timer handler" << std::endl;
+        return 1;
+    }
+    
+    std::cout << "Registering message handler 'RegularEvent'..." << std::endl;
+    error = chirpService.registerMsgHandler("RegularEvent", &handler, &TimerHandler::onRegularEvent);
+    if (error != ChirpError::SUCCESS) {
+        std::cout << "Failed to register regular event handler" << std::endl;
         return 1;
     }
     
@@ -121,9 +135,15 @@ int main() {
         return 1;
     }
     
-    // Let both timers run for 3 seconds (fast timer will fire ~30 times, slow timer 3 times)
-    std::cout << "Timers running for 3 seconds..." << std::endl;
-    std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+    // While timers run for 3 seconds, interleave regular events every 250ms
+    std::cout << "Timers and regular events running for 3 seconds..." << std::endl;
+    for (int i = 1; i <= 12; ++i) { // 12 iterations * 250ms = 3 seconds
+        ChirpError::Error pe = chirpService.postMsg("RegularEvent", std::string("Hello #") + std::to_string(i));
+        if (pe != ChirpError::SUCCESS) {
+            std::cout << "Failed to post RegularEvent: " << static_cast<int>(pe) << std::endl;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(250));
+    }
     
     // Stop the fast timer first
     std::cout << "\nStopping fast timer..." << std::endl;

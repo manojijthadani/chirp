@@ -18,6 +18,7 @@
 #include <string>
 #include <iostream>
 #include <sstream>
+#include <utility>
 #include "chirp_error.h"
 
 
@@ -307,40 +308,31 @@ private:
         ChirpError::Error validateResult = validateArgCount<Args...>(args, 
                                                                      this->getServiceName());
         if (validateResult != ChirpError::SUCCESS) {
-  
-            // If we have a validation callback, call it to capture the error
-            if (_validationCallback) {
-                _validationCallback(validateResult);
-            }
-
-            // Also call the async validation callback if it exists
-            if (_asyncValidationCallback) {
-                _asyncValidationCallback(validateResult);
-            }
-
+            if (_validationCallback) { _validationCallback(validateResult); }
+            if (_asyncValidationCallback) { _asyncValidationCallback(validateResult); }
             return validateResult;
+        }
+
+        // When validating only, do not invoke the user handler; just type-check
+        if (_validateOnly) {
+            if (!validateCasts<Args...>(args)) {
+                if (_validationCallback) { _validationCallback(ChirpError::INVALID_ARGUMENTS); }
+                if (_asyncValidationCallback) { _asyncValidationCallback(ChirpError::INVALID_ARGUMENTS); }
+                return ChirpError::INVALID_ARGUMENTS;
+            }
+            return ChirpError::SUCCESS;
         }
 
         std::vector<std::any> slicedArgs(args.begin() + 1, args.end());
 
-        // Inline the helper logic
         ChirpError::Error result = ChirpError::SUCCESS;
         try {
             executeHandlerImpl(object, method, slicedArgs, std::index_sequence_for<Args...>{});
-        } catch (const std::bad_any_cast& e) {
+        } catch (const std::bad_any_cast&) {
             result = ChirpError::INVALID_ARGUMENTS;
-
-            // If we have a validation callback, call it to capture the error
-            if (_validationCallback) {
-                _validationCallback(result);
-            }
-
-            // Also call the async validation callback if it exists
-            if (_asyncValidationCallback) {
-                _asyncValidationCallback(result);
-            }
+            if (_validationCallback) { _validationCallback(result); }
+            if (_asyncValidationCallback) { _asyncValidationCallback(result); }
         }
-
         return result;
     }
 
@@ -396,41 +388,50 @@ private:
                                           const std::vector<std::any>& args) {
         ChirpError::Error validateResult = validateArgCount<Args...>(args, this->getServiceName());
         if (validateResult != ChirpError::SUCCESS) {
-
-            // If we have a validation callback, call it to capture the error
-            if (_validationCallback) {
-                _validationCallback(validateResult);
-            }
-
-            // Also call the async validation callback if it exists
-            if (_asyncValidationCallback) {
-                _asyncValidationCallback(validateResult);
-            }
-
+            if (_validationCallback) { _validationCallback(validateResult); }
+            if (_asyncValidationCallback) { _asyncValidationCallback(validateResult); }
             return validateResult;
         }
+
+        if (_validateOnly) {
+            if (!validateCasts<Args...>(args)) {
+                if (_validationCallback) { _validationCallback(ChirpError::INVALID_ARGUMENTS); }
+                if (_asyncValidationCallback) { _asyncValidationCallback(ChirpError::INVALID_ARGUMENTS); }
+                return ChirpError::INVALID_ARGUMENTS;
+            }
+            return ChirpError::SUCCESS;
+        }
+
         std::vector<std::any> slicedArgs(args.begin() + 1, args.end());
 
-        // Inline the helper logic
         ChirpError::Error result = ChirpError::SUCCESS;
         try {
             executeHandlerImpl(object, method, slicedArgs, std::index_sequence_for<Args...>{});
-        } catch (const std::bad_any_cast& e) {
-
+        } catch (const std::bad_any_cast&) {
             result = ChirpError::INVALID_ARGUMENTS;
-
-            // If we have a validation callback, call it to capture the error
-            if (_validationCallback) {
-                _validationCallback(result);
-            }
-
-            // Also call the async validation callback if it exists
-            if (_asyncValidationCallback) {
-                _asyncValidationCallback(result);
-            }
+            if (_validationCallback) { _validationCallback(result); }
+            if (_asyncValidationCallback) { _asyncValidationCallback(result); }
         }
-
         return result;
+    }
+
+    // Validate any_cast ability for each argument type without invoking user handler
+    template<typename... T, size_t... I>
+    bool validateCastsImpl(const std::vector<std::any>& args, std::index_sequence<I...>) {
+        try {
+            (void)std::initializer_list<int>{ ((void)std::any_cast<T>(args[1 + I]), 0)... };
+            return true;
+        } catch (const std::bad_any_cast&) {
+            return false;
+        }
+    }
+
+    template<typename... T>
+    bool validateCasts(const std::vector<std::any>& args) {
+        if (args.size() != sizeof...(T) + 1) {
+            return false;
+        }
+        return validateCastsImpl<T...>(args, std::index_sequence_for<T...>{});
     }
 
     /**
@@ -473,6 +474,9 @@ private:
 
     // Callback to capture validation errors for async messages
     std::function<void(ChirpError::Error)> _asyncValidationCallback;
+
+    // Thread-local flag to validate only (no user handler invocation)
+    static thread_local bool _validateOnly;
 
     /**
      * @brief Helper to build message and argument vector, then enqueue
@@ -525,18 +529,7 @@ public:
             return ChirpError::INVALID_SERVICE_STATE;
         }
 
-        // For postMsg, we need to validate arguments synchronously
-        // We'll use a different approach: create a temporary validation message
-        // that gets processed immediately to check for validation errors
-
-        ChirpError::Error validationError = ChirpError::SUCCESS;
-
-        // Set up a temporary validation callback
-        _asyncValidationCallback = [&validationError](ChirpError::Error error) {
-            validationError = error;
-        };
-
-        // Create and process a validation message immediately
+        // Build args and validate without invoking user handler
         std::vector<std::any> args;
         args.push_back(first_arg);
         collectArgs(args, remaining_args...);
@@ -548,27 +541,25 @@ public:
         // Check if handler exists
         std::map<std::string, std::function<ChirpError::Error(std::vector<std::any>)>>* functions = nullptr;
         getCbMap(functions);
-
         auto it = functions->find(msgName);
         if (it == functions->end()) {
-            _asyncValidationCallback = nullptr;
             return ChirpError::HANDLER_NOT_FOUND;
         }
 
-        // Process the message immediately to trigger validation
-        ChirpError::Error result = (it->second)(args);
-
-        // Clear the validation callback
+        // Use validate-only path to check argument count/types
+        ChirpError::Error validationError = ChirpError::SUCCESS;
+        _asyncValidationCallback = [&validationError](ChirpError::Error e){ validationError = e; };
+        _validateOnly = true;
+        (void)(it->second)(args);
+        _validateOnly = false;
         _asyncValidationCallback = nullptr;
 
-        // If validation failed, return the error
-        if (result != ChirpError::SUCCESS) {
-            return result;
+        if (validationError != ChirpError::SUCCESS) {
+            return validationError;
         }
 
-        // If validation passed, enqueue the message normally
-        ChirpError::Error error = enqueMsg(msgName, args);
-        return error;
+        // Enqueue for execution on the service thread (single execution)
+        return enqueMsg(msgName, args);
     }
 
     /**

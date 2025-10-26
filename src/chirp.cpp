@@ -1,6 +1,8 @@
 #include <thread>
 
 #include "ichirp.h"
+// Define thread_local flag declared in header
+thread_local bool IChirp::_validateOnly = false;
 #include "chirp_threads.h"
 #include "chirp_logger.h"
 #include "chirp_impl.h"

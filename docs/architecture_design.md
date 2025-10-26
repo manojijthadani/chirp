@@ -22,11 +22,11 @@ Software architects are often faced with the decision of choosing between a mult
 
 In contrast, a multi-threaded design can offer a compelling trade-off. By leveraging lightweight threads within a single process boundary, systems can achieve parallelism with lower latency, as there's no need for data serialization or security overhead typically required in cross-process communication. However, this approach may reduce flexibility in fault isolation, making the system less resilient to individual thread failures.
 
-Chirp is a project that aims at providing a very light weight and simple API written in C++ for C++ developers that alllows for inter thread communication. 
+Chirp is a project that aims at providing a very light weight and simple API written in C++ for C++ developers that alllows for inter thread communication and management. 
 
 ## Project Overview
 
-The API for Chirp enables developers to create services as individual threads. Each service runs in its own thread and is responsible for handling multiple tasks. Tasks are registered to a service using the `registerMsgHandler(..)` function that associates a unique message to a task. This function returns a `ChirpError::Error` code indicating success or failure. Once registered, these tasks are triggered when the service receives corresponding messages through the `postMsg(..)` call. Developers must ensure that the order and data types of parameters remain consistent between the `registerMsgHandler(..)` and `postMsg(..)` calls. If there is a mismatch, the helper methods will return `INVALID_ARGUMENTS` and a message will be provided in the debug log. Internally, each service manages an event queue to handle and dispatch messages to the appropriate task handlers. The tasks registered for a service are gauranteed to run on the same thread and in the order the messages came in. Hence all the tasks for a service are thread safe.
+The API for Chirp enables developers to create services as individual threads. Each service runs in its own thread and is responsible for handling multiple tasks. Tasks are registered to a service using the `registerMsgHandler(..)` function that associates a unique message to a task. This function returns a `ChirpError::Error` code indicating success or failure. Once registered, these tasks are triggered when the service receives corresponding messages through the `postMsg(..)` call. Developers must ensure that the order and data types of parameters remain consistent between the `registerMsgHandler(..)` and `postMsg(..)` calls. If there is a mismatch, the helper methods will return `INVALID_ARGUMENTS` and a message will be provided in the debug log. Internally, each service manages an event queue to handle and dispatch messages to the appropriate task handlers. The tasks registered for a service are gauranteed to run on the same thread and in the order the messages came in. Hence all the tasks for a service are thread safe. A timer can also be created on a chirp thread which asunchronously interrupts based on the duration provided by the user. The timer does not take up any additional threads for operation.
 
 Chirp is a C++20 library that provides a lightweight, thread-safe message-passing framework for building concurrent services. The framework enables developers to create services that communicate through asynchronous message passing, with support for type-safe message handlers and flexible argument passing.
 
@@ -37,8 +37,9 @@ Chirp is a C++20 library that provides a lightweight, thread-safe message-passin
 - **Flexible Argument Passing**: Support for various C++ data types including containers. Parameters can be passed directly to the API's instead of containerising them. 
 - **Graceful Shutdown Of Services**: Controlled service termination.
 - **Logging Integration**: Debugging support has been provided with the help of a custom built thread-safe logging mechanism.
-- **Factory Pattern**: Centralized service creation and lifecycle management through the ChirpFactory singleton.
+- **Factory Pattern**: Centralized service creation and lifecycle management through the ChirpFactory.
 - **External Dependancies**: The only external library that chirp depends upon are the standard libraries. 
+- **Timer Support:** Services can be asynchronously interrupted on a regular basis, with timers. 
 
 ## System Architecture
 
@@ -131,7 +132,7 @@ sequenceDiagram
 
 ### Message Handler Interface
 
-The message handler system has been refactored to provide a more object-oriented approach. The new interface exclusively supports member function handlers bound to object instances, offering several advantages:
+The message handler system provides a more object-oriented approach. The new interface exclusively supports member function handlers bound to object instances, offering several advantages:
 
 #### Handler Registration Pattern
 ```cpp
@@ -157,7 +158,7 @@ private:
 ServiceHandlers handlers;
 ChirpError::Error error = service.registerMsgHandler("AsyncMessage", &handlers, &ServiceHandlers::asyncHandler);
 if (error != ChirpError::SUCCESS) {
-    std::cout << "Failed to register AsyncMessage handler: " << ChirpError::errorToString(error) << std::endl;
+    std::cout << "Failed to register Async handler: " << ChirpError::errorToString(error) << std::endl;
     return;
 }
 
@@ -167,13 +168,6 @@ if (error != ChirpError::SUCCESS) {
     return;
 }
 ```
-
-#### Benefits of New Interface
-1. **Object-Oriented Design**: Better encapsulation and data hiding
-2. **Stateful Handlers**: Handlers can maintain state between invocations
-3. **Type Safety**: Compile-time checking of method signatures
-4. **Consistent API**: All handlers follow the same registration pattern
-5. **Memory Management**: Clear ownership of handler objects
 
 ### Message Structure
 ```cpp
@@ -196,7 +190,7 @@ class Message {
 
 ## Logging System
 
-Debugging in Chirp can be enabled by setting the environment variable `NICE_SERVICE_DEBUG=1`. When enabled, a log file named `nice_log.txt` is created in the `/tmp` directory each time a process using Chirp starts. Note that this environment variable must be set **before** the process is launched. With each startup, any existing log file is overwritten.
+Debugging in Chirp can be enabled by setting the environment variable `CHIRP_SERVICES_DEBUG=1`. When enabled, a log file named `chirp_log.txt` is created in the `/tmp` directory each time a process using Chirp starts. Note that this environment variable must be set **before** the process is launched. With each startup, any existing log file is overwritten.
 
 The logger is implemented as a singleton, allowing it to be accessed safely from any thread.
 
@@ -225,21 +219,13 @@ The Chirp framework provides comprehensive error handling through the `ChirpErro
 ChirpError::Error error;
 Chirp* service = nullptr;
 ChirpError::Error error = factory.createService("MyService", &service);
-    if (error != ChirpError::SUCCESS) {
-        std::cout << "Service creation failed: " << ChirpError::errorToString(error) << std::endl;
-        // Handle the error appropriately
-        return;
-    }
-// Service created successfully, continue with normal operation
+if (error != ChirpError::SUCCESS) {
+    std::cout << "Service creation failed: " << ChirpError::errorToString(error) << std::endl;
+    return;
+}
 ```
 
 **Thread State Validation**: Messages can only be posted when the service thread is in STARTED or RUNNING state. Attempting to post messages before the service is started or after it's stopped will return `ChirpError::INVALID_SERVICE_STATE`.
-
-#### Benefits
-- **Robust Error Handling**: All allocation failures are detected using `std::nothrow` and null pointer checks
-- **Detailed Error Information**: Specific error codes for different failure modes
-- **Graceful Degradation**: Services fail gracefully without crashing the application
-- **Debugging Support**: Clear error messages help identify and resolve issues
 
 
 ### Service Creation and Management
@@ -441,15 +427,6 @@ public:
 };
 ```
 
-### Benefits of Factory Pattern
-
-1. **Centralized Management**: All service creation and lifecycle operations are managed in one place
-2. **Resource Control**: Prevents service proliferation and ensures proper cleanup
-3. **Testability**: Interface abstraction allows for easy mocking in unit tests
-4. **Extensibility**: New factory implementations can be created without changing client code
-5. **Thread Safety**: Built-in synchronization ensures safe concurrent access
-6. **Memory Management**: Automatic cleanup of services when factory is destroyed
-
 ## Timer System
 
 The ChirpTimer system provides a lightweight, high-precision timer mechanism integrated directly into the Chirp message loop. Timers operate within the service thread context and deliver timer events through the standard message passing mechanism, ensuring thread safety and consistent ordering with other messages. The timer does not create any additional thread, so the number of threads does not grow any more than the number created by chirp service.
@@ -503,54 +480,27 @@ The timer system consists of three main components:
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### Key Components
-
-#### 1. IChirpTimer Interface (`inc/ichirp_timer.h`)
-Abstract interface defining the contract for timer implementations:
-- **start()**: Starts the timer
-- **stop()**: Stops the timer
-- **isRunning()**: Checks if timer is active
-- **getDuration()**: Returns timer interval
-- **getTimerStartTime()**: Returns when timer was started
-
-#### 2. ChirpTimer Implementation (`src/chirp_timer.cpp`)
-Concrete timer implementation that:
-- Stores a message identifier to deliver when the timer fires
-- Maintains duration and running state
-- Records the start time for precise scheduling
-
-#### 3. TimerManager (`src/timer_mgr.cpp`)
-Central timer scheduling and management:
-- Maintains a vector of active timers
-- Tracks firing times for each timer
-- Computes which timer fires next
-- Identifies elapsed timers
-- Reschedules timers after they fire
-
-#### 4. MessageLoop Integration (`src/message_loop.cpp`)
-The message loop integrates timer events with message processing:
-- Uses `std::timed_mutex` for wait-with-timeout
-- Calculates wait duration to next timer event
-- Fires timer handlers when timers elapse
-- Maintains ordering between timer and message events
-
 ### Timer Scheduling Algorithm
 
-The timer system uses an efficient scheduling algorithm that avoids sorting:
+The timer system uses an efficient scheduling algorithm.
 
 1. **Initial Scheduling**: When a timer is started:
    
    ```cpp
-   nextFiringTime = currentTime + duration
+   nextFiringTime = timerStartTime + duration
    ```
    
-2. **Finding Next Timer**: O(n) linear search to find minimum:
+2. **Finding Next Timer**: In case there are multiple timers, O(n) linear search to find minimum:
+   
    ```cpp
    _nextFirringTimerIndex = index of timer with minimum firing time
    _nextFiringTime = minimum firing time value
    ```
-
+   
+   _nextFiringTime is used by the event loop to wait before firing the next timer event.
+   
 3. **Rescheduling After Fire**: Only fired timers are rescheduled:
+   
    ```cpp
    nextFiringTime = previousFiringTime + duration
    ```
@@ -641,16 +591,6 @@ The timer system maintains thread safety through careful mutex usage:
    - Unlocked when timer added to wake loop
 
 3. **Handler Order**: Both `fireTimerHandlers()` and `fireRegularHandlers()` take `st_thread&` as parameter and update it before unlocking, ensuring consistent shutdown behavior.
-
-### Benefits of Timer System
-
-1. **Zero External Dependencies**: No separate timer threads or libraries
-2. **Message Loop Integration**: Timers work seamlessly with message passing
-3. **Thread Safety**: All timer events execute in service thread
-4. **High Precision**: Microsecond-level timing with drift prevention
-5. **Scalable**: Handles multiple independent timers efficiently
-6. **Simple API**: Timer management through service interface
-7. **Predictable Ordering**: Timer events ordered with regular messages
 
 ### Timer Limitations and Considerations
 
