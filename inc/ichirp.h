@@ -19,6 +19,7 @@
 #include <iostream>
 #include <sstream>
 #include <utility>
+#include <type_traits>
 #include "chirp_error.h"
 
 
@@ -323,17 +324,16 @@ private:
             return ChirpError::SUCCESS;
         }
 
-        std::vector<std::any> slicedArgs(args.begin() + 1, args.end());
-
-        ChirpError::Error result = ChirpError::SUCCESS;
-        try {
-            executeHandlerImpl(object, method, slicedArgs, std::index_sequence_for<Args...>{});
-        } catch (const std::bad_any_cast&) {
-            result = ChirpError::INVALID_ARGUMENTS;
-            if (_validationCallback) { _validationCallback(result); }
-            if (_asyncValidationCallback) { _asyncValidationCallback(result); }
+        // Ensure types are correct without exceptions
+        if (!validateCasts<Args...>(args)) {
+            if (_validationCallback) { _validationCallback(ChirpError::INVALID_ARGUMENTS); }
+            if (_asyncValidationCallback) { _asyncValidationCallback(ChirpError::INVALID_ARGUMENTS); }
+            return ChirpError::INVALID_ARGUMENTS;
         }
-        return result;
+
+        std::vector<std::any> slicedArgs(args.begin() + 1, args.end());
+        executeHandlerImpl(object, method, slicedArgs, std::index_sequence_for<Args...>{});
+        return ChirpError::SUCCESS;
     }
 
     /**
@@ -402,28 +402,23 @@ private:
             return ChirpError::SUCCESS;
         }
 
-        std::vector<std::any> slicedArgs(args.begin() + 1, args.end());
-
-        ChirpError::Error result = ChirpError::SUCCESS;
-        try {
-            executeHandlerImpl(object, method, slicedArgs, std::index_sequence_for<Args...>{});
-        } catch (const std::bad_any_cast&) {
-            result = ChirpError::INVALID_ARGUMENTS;
-            if (_validationCallback) { _validationCallback(result); }
-            if (_asyncValidationCallback) { _asyncValidationCallback(result); }
+        // Ensure types are correct without exceptions
+        if (!validateCasts<Args...>(args)) {
+            if (_validationCallback) { _validationCallback(ChirpError::INVALID_ARGUMENTS); }
+            if (_asyncValidationCallback) { _asyncValidationCallback(ChirpError::INVALID_ARGUMENTS); }
+            return ChirpError::INVALID_ARGUMENTS;
         }
-        return result;
+
+        std::vector<std::any> slicedArgs(args.begin() + 1, args.end());
+        executeHandlerImpl(object, method, slicedArgs, std::index_sequence_for<Args...>{});
+        return ChirpError::SUCCESS;
     }
 
     // Validate any_cast ability for each argument type without invoking user handler
     template<typename... T, size_t... I>
     bool validateCastsImpl(const std::vector<std::any>& args, std::index_sequence<I...>) {
-        try {
-            (void)std::initializer_list<int>{ ((void)std::any_cast<T>(args[1 + I]), 0)... };
-            return true;
-        } catch (const std::bad_any_cast&) {
-            return false;
-        }
+        // Use pointer-form any_cast on decayed types to avoid exceptions and handle refs/cv
+        return ((std::any_cast<std::decay_t<T>>(&args[1 + I]) != nullptr) && ...);
     }
 
     template<typename... T>
