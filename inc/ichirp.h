@@ -305,36 +305,7 @@ private:
     template<typename Obj, typename Ret, typename... Args>
     ChirpError::Error executeHandler(Obj* object, 
                                      Ret(Obj::*method)(Args...), 
-                                     const std::vector<std::any>& args) {
-        ChirpError::Error validateResult = validateArgCount<Args...>(args, 
-                                                                     this->getServiceName());
-        if (validateResult != ChirpError::SUCCESS) {
-            if (_validationCallback) { _validationCallback(validateResult); }
-            if (_asyncValidationCallback) { _asyncValidationCallback(validateResult); }
-            return validateResult;
-        }
-
-        // When validating only, do not invoke the user handler; just type-check
-        if (_validateOnly) {
-            if (!validateCasts<Args...>(args)) {
-                if (_validationCallback) { _validationCallback(ChirpError::INVALID_ARGUMENTS); }
-                if (_asyncValidationCallback) { _asyncValidationCallback(ChirpError::INVALID_ARGUMENTS); }
-                return ChirpError::INVALID_ARGUMENTS;
-            }
-            return ChirpError::SUCCESS;
-        }
-
-        // Ensure types are correct without exceptions
-        if (!validateCasts<Args...>(args)) {
-            if (_validationCallback) { _validationCallback(ChirpError::INVALID_ARGUMENTS); }
-            if (_asyncValidationCallback) { _asyncValidationCallback(ChirpError::INVALID_ARGUMENTS); }
-            return ChirpError::INVALID_ARGUMENTS;
-        }
-
-        std::vector<std::any> slicedArgs(args.begin() + 1, args.end());
-        executeHandlerImpl(object, method, slicedArgs, std::index_sequence_for<Args...>{});
-        return ChirpError::SUCCESS;
-    }
+                                     const std::vector<std::any>& args);
 
     /**
      * @brief Helper function to execute handler with proper argument unpacking
@@ -350,9 +321,7 @@ private:
     void executeHandlerImpl(Obj* object, 
                             Ret(Obj::*method)(Args...), 
                             const std::vector<std::any>& args, 
-                            std::index_sequence<I...>) {
-        (object->*method)(std::any_cast<Args>(args[I])...);
-    }
+                            std::index_sequence<I...>);
 
     /**
      * @brief Helper function to execute const handler with proper argument unpacking
@@ -368,9 +337,7 @@ private:
     void executeHandlerImpl(Obj* object, 
                             Ret(Obj::*method)(Args...) const, 
                             const std::vector<std::any>& args, 
-                            std::index_sequence<I...>) {
-        (object->*method)(std::any_cast<Args>(args[I])...);
-    }
+                            std::index_sequence<I...>);
 
     /**
      * @brief Execute a const member function handler with proper error handling
@@ -385,49 +352,14 @@ private:
     template<typename Obj, typename Ret, typename... Args>
     ChirpError::Error executeConstHandler(Obj* object, 
                                           Ret(Obj::*method)(Args...) const, 
-                                          const std::vector<std::any>& args) {
-        ChirpError::Error validateResult = validateArgCount<Args...>(args, this->getServiceName());
-        if (validateResult != ChirpError::SUCCESS) {
-            if (_validationCallback) { _validationCallback(validateResult); }
-            if (_asyncValidationCallback) { _asyncValidationCallback(validateResult); }
-            return validateResult;
-        }
-
-        if (_validateOnly) {
-            if (!validateCasts<Args...>(args)) {
-                if (_validationCallback) { _validationCallback(ChirpError::INVALID_ARGUMENTS); }
-                if (_asyncValidationCallback) { _asyncValidationCallback(ChirpError::INVALID_ARGUMENTS); }
-                return ChirpError::INVALID_ARGUMENTS;
-            }
-            return ChirpError::SUCCESS;
-        }
-
-        // Ensure types are correct without exceptions
-        if (!validateCasts<Args...>(args)) {
-            if (_validationCallback) { _validationCallback(ChirpError::INVALID_ARGUMENTS); }
-            if (_asyncValidationCallback) { _asyncValidationCallback(ChirpError::INVALID_ARGUMENTS); }
-            return ChirpError::INVALID_ARGUMENTS;
-        }
-
-        std::vector<std::any> slicedArgs(args.begin() + 1, args.end());
-        executeHandlerImpl(object, method, slicedArgs, std::index_sequence_for<Args...>{});
-        return ChirpError::SUCCESS;
-    }
+                                          const std::vector<std::any>& args);
 
     // Validate any_cast ability for each argument type without invoking user handler
     template<typename... T, size_t... I>
-    bool validateCastsImpl(const std::vector<std::any>& args, std::index_sequence<I...>) {
-        // Use pointer-form any_cast on decayed types to avoid exceptions and handle refs/cv
-        return ((std::any_cast<std::decay_t<T>>(&args[1 + I]) != nullptr) && ...);
-    }
+    bool validateCastsImpl(const std::vector<std::any>& args, std::index_sequence<I...>);
 
     template<typename... T>
-    bool validateCasts(const std::vector<std::any>& args) {
-        if (args.size() != sizeof...(T) + 1) {
-            return false;
-        }
-        return validateCastsImpl<T...>(args, std::index_sequence_for<T...>{});
-    }
+    bool validateCasts(const std::vector<std::any>& args);
 
     /**
      * @brief Enqueue a message for processing
@@ -604,4 +536,6 @@ public:
         return (validationError != ChirpError::SUCCESS) ? validationError : error;
     }
 };
+
+#include "ichirp_detail.hpp"
 
