@@ -13,6 +13,7 @@
 #pragma once
 #include <memory>
 #include <string>
+#include <vector>
 #include "chirp_error.h"
 
 // Forward declaration to prevent inclusion of private headers
@@ -71,6 +72,12 @@ public:
      * @return Number of services currently managed by the factory
      */
     virtual size_t getServiceCount() const = 0;
+
+    /**
+     * @brief List names of all active services
+     * @return Vector of service names
+     */
+    virtual std::vector<std::string> listServiceNames() const = 0;
 
     /**
      * @brief Shutdown all services managed by the factory

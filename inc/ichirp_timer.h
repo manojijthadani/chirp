@@ -46,6 +46,23 @@ public:
     IChirpTimer() = default;
 
     /**
+     * @brief Factory method to create a timer instance
+     * @return A pointer to a newly created IChirpTimer instance
+     * 
+     * This factory method creates and returns a timer instance that implements
+     * the IChirpTimer interface. The caller is responsible for managing the
+     * lifetime of the returned pointer.
+     * 
+     * @example
+     * @code
+     * IChirpTimer* timer = IChirpTimer::createTimer();
+     * timer->configure("MyMessage", std::chrono::milliseconds(1000));
+     * timer->start();
+     * @endcode
+     */
+    static IChirpTimer* createTimer();
+
+    /**
      * @brief Configure the timer with message and duration
      * @param messageToDeliver The message to deliver when timer fires
      * @param duration The duration for the timer interval

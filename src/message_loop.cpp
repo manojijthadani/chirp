@@ -138,14 +138,16 @@ void MessageLoop::fireTimerHandlers(bool& st_thread) {
     _task_exec_mtx.lock();
     for (ChirpTimer* timer : elapsedTimers) {
         if (timer) {
-            // Timer has elapsed, handle it
-            ChirpLogger::instance(_service_name) << "Timer elapsed, processing..." << std::endl;
+            std::string timerMsg = timer->getMessage();
+            
             // Call the handler for this timer
-            auto it = _functions.find(timer->getMessage());
+            auto it = _functions.find(timerMsg);
             if (it != _functions.end()) {
-                // Args vector must include the message name as first element
+                // Args vector must include the message name as first element,
+                // followed by the actual arguments (timer message name)
                 std::vector<std::any> args;
-                args.push_back(timer->getMessage());
+                args.push_back(timerMsg);  // Message name (required by handler framework)
+                args.push_back(timerMsg);  // Actual argument: the timer message
                 it->second(args);
             }
         }
@@ -160,8 +162,6 @@ void MessageLoop::fireTimerHandlers(bool& st_thread) {
     
     // Recompute which timer fires next
     _timer_mgr.computeNextTimerFirringTime();
-    // Note: We don't unlock _empty_mtx here because the loop will naturally
-    // continue and recalculate the next wait duration in the next iteration
 }
 
 void MessageLoop::fireRegularHandlers(bool& st_thread) {
@@ -177,9 +177,6 @@ void MessageLoop::fireRegularHandlers(bool& st_thread) {
         m->getArgs(args);
         auto it = _functions.find(msg);
         if (it != _functions.end()) {
-            ChirpLogger::instance(_service_name) << "Dispatching handler for "
-                                                 << msg << " with " << args.size() 
-                                                 << " arguments" << std::endl;
             it->second(args);
         }
         Message::MessageType mt;

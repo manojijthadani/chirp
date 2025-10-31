@@ -88,6 +88,16 @@ size_t ChirpFactory::getServiceCount() const {
     return _services.size();
 }
 
+std::vector<std::string> ChirpFactory::listServiceNames() const {
+    std::lock_guard<std::mutex> lock(_mutex);
+    std::vector<std::string> names;
+    names.reserve(_services.size());
+    for (const auto& kv : _services) {
+        names.push_back(kv.first);
+    }
+    return names;
+}
+
 void ChirpFactory::shutdownAllServices() {
     std::lock_guard<std::mutex> lock(_mutex);
     

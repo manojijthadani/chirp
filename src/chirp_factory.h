@@ -34,6 +34,7 @@ public:
     IChirp* getService(const std::string& service_name) override;
     bool destroyService(const std::string& service_name) override;
     size_t getServiceCount() const override;
+    std::vector<std::string> listServiceNames() const override;
     void shutdownAllServices() override;
     const std::string& getVersion() const override;
 

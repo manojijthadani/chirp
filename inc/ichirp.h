@@ -221,6 +221,10 @@ public:
      */
     static const std::string& getVersion();
 
+    // Watchdog monitoring flag
+    void setWatchDogMonitoring(bool enabled);
+    bool getWatchDogMonitoring() const;
+
 private:
     static const std::string _version;
     /**
@@ -404,6 +408,9 @@ private:
 
     // Thread-local flag to validate only (no user handler invocation)
     static thread_local bool _validateOnly;
+
+    // Watchdog monitoring state (disabled by default)
+    bool _watchdogMonitoringEnabled = false;
 
     /**
      * @brief Helper to build message and argument vector, then enqueue

@@ -12,6 +12,13 @@
 #include <iostream>
 
 
+ChirpTimer::ChirpTimer()
+    : _messageToDeliver("")
+    , _duration(0)
+    , _state(TimerState::STOPPED)
+    , _shouldStop(false) {
+}
+
 ChirpTimer::ChirpTimer(std::string messageToDeliver, const std::chrono::milliseconds& duration) 
     : _messageToDeliver(messageToDeliver)
     , _duration(duration)
@@ -31,17 +38,19 @@ ChirpError::Error ChirpTimer::configure( std::string messageToDeliver,
     ChirpError::Error result = ChirpError::SUCCESS;
     std::lock_guard<std::mutex> lock(_configMutex);
     
-    // Check if timer is running
-    result = validateConfiguration();
-    if (result == ChirpError::SUCCESS) {
-        if (messageToDeliver.empty() || duration.count() <= 0) {
-            ChirpLogger::instance("ChirpTimer") << "Invalid message to deliver or duration" << std::endl;
-            result = ChirpError::INVALID_ARGUMENTS;
-        }
-        else {
-            _messageToDeliver = messageToDeliver;
-            _duration = duration;
-        }
+    // Check if timer is running - cannot configure a running timer
+    if (_state == TimerState::RUNNING) {
+        ChirpLogger::instance("ChirpTimer") << "Cannot configure timer while it is running" << std::endl;
+        result = ChirpError::INVALID_SERVICE_STATE;
+    }
+    // Validate new configuration values
+    else if (messageToDeliver.empty() || duration.count() <= 0) {
+        ChirpLogger::instance("ChirpTimer") << "Invalid message to deliver or duration" << std::endl;
+        result = ChirpError::INVALID_ARGUMENTS;
+    }
+    else {
+        _messageToDeliver = messageToDeliver;
+        _duration = duration;
     }
     
     return result;
@@ -118,4 +127,9 @@ std::string ChirpTimer::getMessage() const {
 
     std::lock_guard<std::mutex> lock(_configMutex);
     return _messageToDeliver;
+}
+
+// Static factory method implementation
+IChirpTimer* IChirpTimer::createTimer() {
+    return new ChirpTimer();
 }

@@ -32,6 +32,13 @@
 class ChirpTimer : public IChirpTimer {
 public:
     /**
+     * @brief Default constructor
+     * 
+     * Creates an unconfigured timer. Use configure() to set message and duration.
+     */
+    ChirpTimer();
+
+    /**
      * @brief Constructor with message and duration
      * @param messageToDeliver Message to deliver when timer fires
      * @param duration Timer duration in milliseconds

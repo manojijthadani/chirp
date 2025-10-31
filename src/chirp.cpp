@@ -17,6 +17,15 @@ const std::string& IChirp::getVersion() {
     return _version;
 }
 
+void IChirp::setWatchDogMonitoring(bool enabled) {
+    _watchdogMonitoringEnabled = enabled;
+}
+
+bool IChirp::getWatchDogMonitoring() const {
+    return _watchdogMonitoringEnabled;
+}
+
+
 IChirp::IChirp(const std::string& service_name, ChirpError::Error& error) {
     _impl = new (std::nothrow) ChirpImpl(service_name, error);
     if (!_impl) {

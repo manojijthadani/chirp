@@ -130,6 +130,10 @@ void TimerManager::rescheduleTimers(const std::vector<ChirpTimer*>& firedTimers)
                 std::chrono::milliseconds duration = timer->getDuration();
                 auto nextFiringTime = startTime + duration;
                 
+                std::cout << "[TimerManager::rescheduleTimers] Timer rescheduled for next firing at: "
+                          << std::chrono::duration_cast<std::chrono::milliseconds>(nextFiringTime.time_since_epoch()).count() 
+                          << "ms (duration: " << duration.count() << "ms)" << std::endl;
+                
                 // Remove the old entry
                 _timerFiringTimes.erase(it);
                 
