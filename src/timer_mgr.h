@@ -52,6 +52,9 @@ public:
      * Creates a vector of all timer instances and calculates their next firing time.
      * For first-time additions, reads start time and adds duration. Sorts the vector
      * by firing time with lowest times at the top. Result is stored in _timerFiringTimes.
+     * Skips any timers that are in the elapsedTimers list.
+     * 
+     * @param elapsedTimers Vector of timers that have just elapsed and should be skipped
      */
     void computeNextTimerFirringTime();
 

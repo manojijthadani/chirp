@@ -52,7 +52,8 @@ const IChirp* ChirpWatchDog::getChirpService() const {
 
 ChirpError::Error ChirpWatchDog::configure(IChirpFactory* factory,
                                            const std::chrono::milliseconds& petDuration) {
-    std::cout << "[ChirpWatchDog::configure] Configuring ChirpWatchDog service" << std::endl;
+    //std::cout << "[ChirpWatchDog::configure] Configuring ChirpWatchDog service" << std::endl;
+    //std::cout << "[ChirpWatchDog::configure] Configuring ChirpWatchDog service" << std::endl;
     if (!factory || petDuration.count() <= 0) {
         return ChirpError::INVALID_CONFIGURATION;
     }
@@ -67,8 +68,10 @@ ChirpError::Error ChirpWatchDog::configure(IChirpFactory* factory,
 
 ChirpError::Error ChirpWatchDog::start() {
     
-    std::cout << "[ChirpWatchDog::start] Starting ChirpWatchDog service" << std::endl;
+    //std::cout << "[ChirpWatchDog::start] Starting ChirpWatchDog service" << std::endl;
+    //std::cout << "[ChirpWatchDog::start] Starting ChirpWatchDog service" << std::endl;
     if (!_chirpService) {
+        //std::cout << "[ChirpWatchDog::start] Chirp service not found" << std::endl;
         std::cout << "[ChirpWatchDog::start] Chirp service not found" << std::endl;
         return ChirpError::INVALID_SERVICE_STATE;
     }
@@ -76,6 +79,7 @@ ChirpError::Error ChirpWatchDog::start() {
     auto e = _chirpService->start();
     if (e != ChirpError::SUCCESS) 
     {
+        //std::cout << "[ChirpWatchDog::start] Failed to start Chirp service: " << static_cast<int>(e) << std::endl;
         std::cout << "[ChirpWatchDog::start] Failed to start Chirp service: " << static_cast<int>(e) << std::endl;
         return e;
     }
@@ -83,20 +87,23 @@ ChirpError::Error ChirpWatchDog::start() {
     // Start all pet timers on their respective services
     for (auto& kv : _servicePetTimers) {
         if (kv.second) {
-            std::cout << "[ChirpWatchDog::start] Starting pet timer for: " << kv.first << std::endl;
+            //std::cout << "[ChirpWatchDog::start] Starting pet timer for: " << kv.first << std::endl;
+            //std::cout << "[ChirpWatchDog::start] Starting pet timer for: " << kv.first << std::endl;
             kv.second->start();
             
             // Now add to service AFTER it's started (so it's marked as RUNNING)
             IChirp* svc = _factory->getService(kv.first);
             if (svc) {
-                std::cout << "[ChirpWatchDog::start] Adding pet timer to service: " << kv.first << std::endl;
+                //std::cout << "[ChirpWatchDog::start] Adding pet timer to service: " << kv.first << std::endl;
+                //std::cout << "[ChirpWatchDog::start] Adding pet timer to service: " << kv.first << std::endl;
                 svc->addChirpTimer(kv.second);
             }
         }
     }
     
     if (_monitorTimer) {
-        std::cout << "[ChirpWatchDog::start] Starting monitor timer" << std::endl;
+        //std::cout << "[ChirpWatchDog::start] Starting monitor timer" << std::endl;
+        //std::cout << "[ChirpWatchDog::start] Starting monitor timer" << std::endl;
         _monitorTimer->start();
         
         // Now add to service AFTER it's started (so it's marked as RUNNING)
@@ -132,7 +139,8 @@ void ChirpWatchDog::installPetTimers() {
     if (!_factory) {
         return;
     }
-    std::cout << "[ChirpWatchDog::installPetTimers] Installing pet timers" << std::endl;
+    //std::cout << "[ChirpWatchDog::installPetTimers] Installing pet timers" << std::endl;
+    //std::cout << "[ChirpWatchDog::installPetTimers] Installing pet timers" << std::endl;
     uninstallPetTimers();
     
     std::vector<std::string> serviceNames = _factory->listServiceNames();
@@ -155,8 +163,10 @@ void ChirpWatchDog::installPetTimers() {
                 ChirpError::Error handlerErr = svc->registerMsgHandler(timerMsgName, 
                                                                        this, 
                                                                        &ChirpWatchDog::onPetTimerFired);
-                std::cout << "[ChirpWatchDog::installPetTimers] Registered handler for: " << timerMsgName 
-                          << " (service: " << name << "), error: " << static_cast<int>(handlerErr) << std::endl;
+                //std::cout << "[ChirpWatchDog::installPetTimers] Registered handler for: " << timerMsgName 
+                //          << " (service: " << name << "), error: " << static_cast<int>(handlerErr) << std::endl;
+                //std::cout << "[ChirpWatchDog::installPetTimers] Registered handler for: " << timerMsgName 
+                //          << " (service: " << name << "), error: " << static_cast<int>(handlerErr) << std::endl;
             }
         }
     }
@@ -181,16 +191,20 @@ void ChirpWatchDog::installMonitorTimer() {
     if (!_chirpService) {
         return;
     }
+    //std::cout << "[ChirpWatchDog::installMonitorTimer] Installing monitor timer" << std::endl;
     std::cout << "[ChirpWatchDog::installMonitorTimer] Installing monitor timer" << std::endl;
     
     (void)_chirpService->registerMsgHandler("monitorTimerElapsed", this, &ChirpWatchDog::onMonitorTick);
     
     _monitorTimer = new ChirpTimer("monitorTimerElapsed", 2 * _petDuration);
+    //std::cout << "[ChirpWatchDog::installMonitorTimer] Created monitor timer with message='monitorTimerElapsed', duration=" 
+    //          << (2 * _petDuration).count() << "ms" << std::endl;
     
     // Timer will be added to service in start() after it's started
 }
 
 ChirpError::Error ChirpWatchDog::onPetTimerFired(const std::string& timerMsgName) {
+    //std::cout << "[ChirpWatchDog::onPetTimerFired] **CALLED** with: " << timerMsgName << std::endl;
     std::cout << "[ChirpWatchDog::onPetTimerFired] **CALLED** with: " << timerMsgName << std::endl;
     // Extract the service name from the timer message name (e.g., "_PetTimer_Service1" -> "Service1")
     std::string servicePrefix = "_PetTimer_";
@@ -214,8 +228,10 @@ ChirpError::Error ChirpWatchDog::onMonitorTick(const std::string& timerMessage) 
     // Get all monitored services and check for missed pets
     std::vector<std::string> serviceNames = _factory->listServiceNames();
     
-    std::cout << "[ChirpWatchDog::onMonitorTick] ************Called at: " 
-              << std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count() << "ms" << std::endl;
+    //std::cout << "[ChirpWatchDog::onMonitorTick] ************Called at: " 
+    //          << std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count() << "ms" << std::endl;
+    //std::cout << "[ChirpWatchDog::onMonitorTick] ************Called at: " 
+    //          << std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count() << "ms" << std::endl;
     
     if (!_factory) {
         return ChirpError::INVALID_SERVICE_STATE;
@@ -235,24 +251,38 @@ ChirpError::Error ChirpWatchDog::onMonitorTick(const std::string& timerMessage) 
                 } else {
                     // Check if service missed its petting
                     auto timeSinceLastPet = now - it->second;
-                    auto threshold = 2 * _petDuration;  // Threshold is 2 * pet duration
+                    auto threshold = 3 * _petDuration;  // Threshold is 2 * pet duration
                     
                     if (timeSinceLastPet > threshold) {
                         // Service missed its petting - post missed pet message
-                        std::cout << "[ChirpWatchDog::onMonitorTick] Service '" << serviceName 
-                                  << "' missed pet (time since last pet: " 
-                                  << std::chrono::duration_cast<std::chrono::milliseconds>(timeSinceLastPet).count() 
-                                  << "ms, threshold: " 
-                                  << std::chrono::duration_cast<std::chrono::milliseconds>(threshold).count() 
-                                  << "ms)" << std::endl;
-                        _chirpService->postMsg(IChirpWatchDog::MissedPetMessage, serviceName);
+                        //std::cout << "[ChirpWatchDog::onMonitorTick] Service '" << serviceName 
+                        //          << "' missed pet (time since last pet: " 
+                        //          << std::chrono::duration_cast<std::chrono::milliseconds>(timeSinceLastPet).count() 
+                        //          << "ms, threshold: " 
+                        //          << std::chrono::duration_cast<std::chrono::milliseconds>(threshold).count() 
+                        //          << "ms)" << std::endl;
+                        //std::cout << "[ChirpWatchDog::onMonitorTick] Service '" << serviceName 
+                        //          << "' missed pet (time since last pet: " 
+                        //          << std::chrono::duration_cast<std::chrono::milliseconds>(timeSinceLastPet).count() 
+                        //          << "ms, threshold: " 
+                        //          << std::chrono::duration_cast<std::chrono::milliseconds>(threshold).count() 
+                        //          << "ms)" << std::endl;
+                        //std::cout << "[ChirpWatchDog::onMonitorTick] BEFORE postMsg - About to post MissedPetMessage" << std::endl;
+                        ChirpError::Error postError = _chirpService->postMsg(IChirpWatchDog::MissedPetMessage, serviceName);
+                        //std::cout << "[ChirpWatchDog::onMonitorTick] AFTER postMsg - postMsg returned error: " << postError << std::endl;
                     } else {
-                        std::cout << "[ChirpWatchDog::onMonitorTick] Service '" << serviceName 
-                                  << "' OK (time since last pet: " 
-                                  << std::chrono::duration_cast<std::chrono::milliseconds>(timeSinceLastPet).count() 
-                                  << "ms, threshold: " 
-                                  << std::chrono::duration_cast<std::chrono::milliseconds>(threshold).count() 
-                                  << "ms)" << std::endl;
+                        //std::cout << "[ChirpWatchDog::onMonitorTick] Service '" << serviceName 
+                        //          << "' OK (time since last pet: " 
+                        //          << std::chrono::duration_cast<std::chrono::milliseconds>(timeSinceLastPet).count() 
+                        //          << "ms, threshold: " 
+                        //          << std::chrono::duration_cast<std::chrono::milliseconds>(threshold).count() 
+                        //          << "ms)" << std::endl;
+                        //std::cout << "[ChirpWatchDog::onMonitorTick] Service '" << serviceName 
+                        //          << "' OK (time since last pet: " 
+                        //          << std::chrono::duration_cast<std::chrono::milliseconds>(timeSinceLastPet).count() 
+                        //          << "ms, threshold: " 
+                        //          << std::chrono::duration_cast<std::chrono::milliseconds>(threshold).count() 
+                        //          << "ms)" << std::endl;
                     }
                 }
             }

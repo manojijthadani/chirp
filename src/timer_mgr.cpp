@@ -18,7 +18,15 @@ TimerManager::~TimerManager() {
 
 void TimerManager::addTimer(ChirpTimer* chirpTimer) {
     
-    _timers.push_back(chirpTimer);
+    if (chirpTimer) {
+        _timers.push_back(chirpTimer);
+        auto currentTime = std::chrono::steady_clock::now();
+        std::chrono::milliseconds duration = chirpTimer->getDuration();
+        auto nextFiringTime = currentTime + duration;
+                    
+        // Add the new timer to the vector
+        _timerFiringTimes.push_back(std::make_pair(chirpTimer, nextFiringTime));
+    }
 }
 
 void TimerManager::removeTimer(ChirpTimer* chirpTimer) {
@@ -42,9 +50,15 @@ void TimerManager::removeTimer(ChirpTimer* chirpTimer) {
 
 void TimerManager::computeNextTimerFirringTime() {
 
-    // Only add new timers that aren't already scheduled
-    for (ChirpTimer* timer : _timers) {
+    // Only add new timers that aren't already scheduled and aren't in the elapsed list
+    /*for (ChirpTimer* timer : _timers) {
         if (timer && timer->isRunning()) {
+            // Skip timers that just elapsed
+            if (std::find(elapsedTimers.begin(), elapsedTimers.end(), timer) != elapsedTimers.end()) {
+                std::cout << "*****skipping timer*********" << std::endl;
+                continue;
+            }
+            
             // Check if timer already exists in the vector
             auto it = std::find_if(_timerFiringTimes.begin(), _timerFiringTimes.end(),
                 [timer](const std::pair<ChirpTimer*, std::chrono::steady_clock::time_point>& pair) {
@@ -63,7 +77,7 @@ void TimerManager::computeNextTimerFirringTime() {
                 _timerFiringTimes.push_back(std::make_pair(timer, nextFiringTime));
             }
         }
-    }
+    } */
     
     // Find the index of the timer with the lowest firing time
     if (!_timerFiringTimes.empty()) {
@@ -130,9 +144,9 @@ void TimerManager::rescheduleTimers(const std::vector<ChirpTimer*>& firedTimers)
                 std::chrono::milliseconds duration = timer->getDuration();
                 auto nextFiringTime = startTime + duration;
                 
-                std::cout << "[TimerManager::rescheduleTimers] Timer rescheduled for next firing at: "
-                          << std::chrono::duration_cast<std::chrono::milliseconds>(nextFiringTime.time_since_epoch()).count() 
-                          << "ms (duration: " << duration.count() << "ms)" << std::endl;
+                //std::cout << "[TimerManager::rescheduleTimers] Timer rescheduled for next firing at: "
+               //           << std::chrono::duration_cast<std::chrono::milliseconds>(nextFiringTime.time_since_epoch()).count() 
+               //           << "ms (duration: " << duration.count() << "ms)" << std::endl;
                 
                 // Remove the old entry
                 _timerFiringTimes.erase(it);

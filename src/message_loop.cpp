@@ -43,10 +43,12 @@ void MessageLoop::spin() {
 }
 
 void MessageLoop::enqueue(Message* m) {
+
     enqueueInternal(m, Message::MessageType::ASYNC);
 }
 
 void MessageLoop::enqueueSync(Message* m) {
+
     enqueueInternal(m, Message::MessageType::SYNC);
 }
 
@@ -58,11 +60,8 @@ void MessageLoop::enqueueInternal(Message* m, Message::MessageType type, Enqueue
         m->getMessage(msg);
         ChirpLogger::instance(_service_name) << "Enqueing message " << msg << std::endl;
         
-        if (position == EnqueuePosition::ENQUEUE_FRONT) {
-            _message_queue.push_front(m);
-        } else {
-            _message_queue.push_back(m);
-        }
+        (position == EnqueuePosition::ENQUEUE_FRONT) ? _message_queue.push_front(m)  
+                                                     : _message_queue.push_back(m);
         
         if (!_message_queue.empty()) {
             _empty_mtx.unlock();
@@ -148,7 +147,7 @@ void MessageLoop::fireTimerHandlers(bool& st_thread) {
     // Reschedule only the timers that just fired
     _timer_mgr.rescheduleTimers(elapsedTimers);
     
-    // Recompute which timer fires next
+    // Recompute which timer fires next, skipping the elapsed timers
     _timer_mgr.computeNextTimerFirringTime();
 }
 

@@ -44,14 +44,14 @@ public:
     
     ChirpError::Error handleMessage(const std::string& payload) {
         std::lock_guard<std::mutex> lock(consoleMutex);
-        std::cout << "[" << _serviceName << "] Received message: " << payload 
+        std::cout << "+++++++++++++[" << _serviceName << "] Received message: " << payload 
                   << " (simulating " << _responseTime << "ms work)" << std::endl;
         
         // Simulate work by sleeping
         std::this_thread::sleep_for(std::chrono::milliseconds(_responseTime));
         
-        std::cout << "[" << _serviceName << "] Completed message processing" << std::endl;
-        std::cout.flush();
+        //std::cout << "[" << _serviceName << "] Completed message processing" << std::endl;
+        //std::cout.flush();
         _messageCount++;
         return ChirpError::SUCCESS;
     }
@@ -76,14 +76,14 @@ public:
 };
 
 int main() {
-    std::cout << "\n=== ChirpWatchDog Example ===" << std::endl;
-    std::cout << "Demonstrates watchdog monitoring of service responsiveness\n" << std::endl;
+    //std::cout << "\n=== ChirpWatchDog Example ===" << std::endl;
+    //std::cout << "Demonstrates watchdog monitoring of service responsiveness\n" << std::endl;
     
     // Get the factory singleton
     IChirpFactory* factory = &ChirpFactory::getInstance();
     
     // Create two services
-    std::cout << "Creating Service1..." << std::endl;
+    //std::cout << "Creating Service1..." << std::endl;
     IChirp* service1 = nullptr;
     ChirpError::Error error = factory->createService("Service1", &service1);
     if (error != ChirpError::SUCCESS || !service1) {
@@ -91,7 +91,7 @@ int main() {
         return 1;
     }
     
-    std::cout << "Creating Service2..." << std::endl;
+    //std::cout << "Creating Service2..." << std::endl;
     IChirp* service2 = nullptr;
     error = factory->createService("Service2", &service2);
     if (error != ChirpError::SUCCESS || !service2) {
@@ -104,7 +104,7 @@ int main() {
     ServiceHandler handler2("Service2");
     
     // Register message handlers
-    std::cout << "Registering handlers for services..." << std::endl;
+    //std::cout << "Registering handlers for services..." << std::endl;
     error = service1->registerMsgHandler("ProcessData", &handler1, &ServiceHandler::handleMessage);
     if (error != ChirpError::SUCCESS) {
         std::cout << "ERROR: Failed to register Service1 handler" << std::endl;
@@ -118,14 +118,14 @@ int main() {
     }
     
     // Enable watchdog monitoring on both services
-    std::cout << "Enabling watchdog monitoring on Service1..." << std::endl;
+    //std::cout << "Enabling watchdog monitoring on Service1..." << std::endl;
     service1->setWatchDogMonitoring(true);
     
-    std::cout << "Enabling watchdog monitoring on Service2..." << std::endl;
+    //std::cout << "Enabling watchdog monitoring on Service2..." << std::endl;
     service2->setWatchDogMonitoring(true);
     
     // Start the services
-    std::cout << "Starting services..." << std::endl;
+    //std::cout << "Starting services..." << std::endl;
     error = service1->start();
     if (error != ChirpError::SUCCESS) {
         std::cout << "ERROR: Failed to start Service1" << std::endl;
@@ -139,7 +139,7 @@ int main() {
     }
     
     // Create and configure the watchdog service
-    std::cout << "Creating ChirpWatchDog service..." << std::endl;
+    //std::cout << "Creating ChirpWatchDog service..." << std::endl;
     IChirpWatchDog* watchdog = new ChirpWatchDog("Watchdog");
     if (!watchdog) {
         std::cout << "ERROR: Failed to create watchdog" << std::endl;
@@ -147,7 +147,7 @@ int main() {
     }
     
     // Configure watchdog with 1 second pet duration
-    std::cout << "Configuring watchdog with 1 second pet duration..." << std::endl;
+    //std::cout << "Configuring watchdog with 1 second pet duration..." << std::endl;
     error = watchdog->configure(factory, std::chrono::milliseconds(1000));
     if (error != ChirpError::SUCCESS) {
         std::cout << "ERROR: Failed to configure watchdog" << std::endl;
@@ -167,7 +167,7 @@ int main() {
     }
     
     // Start the watchdog
-    std::cout << "Starting watchdog service...\n" << std::endl;
+    //std::cout << "Starting watchdog service...\n" << std::endl;
     error = watchdog->start();
     if (error != ChirpError::SUCCESS) {
         std::cout << "ERROR: Failed to start watchdog" << std::endl;
@@ -176,7 +176,7 @@ int main() {
     }
     
     // Phase 1: Both services responding normally (250ms each)
-    std::cout << "=== PHASE 1: Both services responding normally (250ms per message) ===" << std::endl;
+    //std::cout << "=== PHASE 1: Both services responding normally (250ms per message) ===" << std::endl;
     for (int i = 1; i <= 12; ++i) {
         std::ostringstream oss;
         oss << "Data packet #" << i;
@@ -188,8 +188,8 @@ int main() {
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
     }
     
-    std::cout << "\n=== PHASE 2: Service2 becomes slow (2.5 seconds per message) ===" << std::endl;
-    std::cout << "Changing Service2 response time to 2.5 seconds...\n" << std::endl;
+    //std::cout << "\n=== PHASE 2: Service2 becomes slow (2.5 seconds per message) ===" << std::endl;
+    //std::cout << "Changing Service2 response time to 2.5 seconds...\n" << std::endl;
     handler2.setResponseTime(4000);
     
     // Phase 2: Service2 is slow (2.5s > 2s threshold = 2 * 1s pet duration)
@@ -205,22 +205,22 @@ int main() {
     
     std::this_thread::sleep_for(std::chrono::milliseconds(60000));
     // Cleanup
-    std::cout << "\n=== Shutting down ===" << std::endl;
+    //std::cout << "\n=== Shutting down ===" << std::endl;
     delete watchdog;
     
-    std::cout << "Stopping services..." << std::endl;
+    //std::cout << "Stopping services..." << std::endl;
     service1->shutdown();
     service2->shutdown();
     
-    std::cout << "Destroying services..." << std::endl;
+    //std::cout << "Destroying services..." << std::endl;
     factory->destroyService("Service1");
     factory->destroyService("Service2");
     
-    std::ostringstream summary;
-    summary << "\nExample completed successfully!\n"
-            << "Service1 processed " << handler1.getMessageCount() << " messages\n"
-            << "Service2 processed " << handler2.getMessageCount() << " messages";
-    std::cout << summary.str() << std::endl;
+    //std::ostringstream summary;
+    //summary << "\nExample completed successfully!\n"
+    //        << "Service1 processed " << handler1.getMessageCount() << " messages\n"
+    //        << "Service2 processed " << handler2.getMessageCount() << " messages";
+    //std::cout << summary.str() << std::endl;
     
     return 0;
 }
