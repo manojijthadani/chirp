@@ -67,11 +67,7 @@ void MessageLoop::enqueueInternal(Message* m, Message::MessageType type, Enqueue
             _empty_mtx.unlock();
         }
         if (type == Message::MessageType::SYNC) {
-            ChirpLogger::instance(_service_name) 
-            << "Blocking caller thread on a sync call " << std::endl;
             m->sync_wait();
-            ChirpLogger::instance(_service_name) 
-            << "Unblocking caller thread on a sync call " << std::endl;
         }
     }
 }

@@ -34,6 +34,18 @@ void threadSafePrint(const std::string& message) {
     std::cout.flush();
 }
 
+std::string getCurrentTimeWithMsec() {
+    auto now = std::chrono::system_clock::now();
+    auto time_t_now = std::chrono::system_clock::to_time_t(now);
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
+    
+    std::tm* timeinfo = std::localtime(&time_t_now);
+    std::stringstream ss;
+    ss << std::put_time(timeinfo, "%H:%M:%S");
+    ss << ":" << std::setfill('0') << std::setw(3) << ms.count();
+    return ss.str();
+}
+
 class ServiceHandler {
 public:
     explicit ServiceHandler(const std::string& name) : _serviceName(name), _messageCount(0), _responseTime(250) {}
@@ -42,9 +54,15 @@ public:
         _responseTime = milliseconds;
     }
     
+    void bindService(IChirp* service) { _service = service; }
+    void setPostingRange(int startIndex, int endIndex) {
+        _postRangeStart = startIndex;
+        _postRangeEnd = endIndex;
+    }
+    
     ChirpError::Error handleMessage(const std::string& payload) {
         std::lock_guard<std::mutex> lock(consoleMutex);
-        std::cout << "+++++++++++++[" << _serviceName << "] Received message: " << payload 
+        std::cout << "[" << getCurrentTimeWithMsec() << "] +++++++++++++[" << _serviceName << "] Received message: " << payload 
                   << " (simulating " << _responseTime << "ms work)" << std::endl;
         
         // Simulate work by sleeping
@@ -53,15 +71,31 @@ public:
         //std::cout << "[" << _serviceName << "] Completed message processing" << std::endl;
         //std::cout.flush();
         _messageCount++;
+        
+        // Chain next post if in range
+        int idx = parsePacketIndex(payload);
+        if (_service && idx >= _postRangeStart && idx < _postRangeEnd) {
+            std::ostringstream oss;
+            oss << "Data packet #" << (idx + 1);
+            _service->postMsg("ProcessData", oss.str());
+        }
         return ChirpError::SUCCESS;
     }
     
     int getMessageCount() const { return _messageCount; }
     
 private:
+    int parsePacketIndex(const std::string& text) const {
+        std::size_t pos = text.find('#');
+        if (pos == std::string::npos) return 0;
+        try { return std::stoi(text.substr(pos + 1)); } catch (...) { return 0; }
+    }
     std::string _serviceName;
     int _messageCount;
     int _responseTime;
+    IChirp* _service = nullptr;
+    int _postRangeStart = 0;
+    int _postRangeEnd = 0;
 };
 
 class WatchdogHandler {
@@ -85,7 +119,7 @@ int main() {
     // Create two services
     //std::cout << "Creating Service1..." << std::endl;
     IChirp* service1 = nullptr;
-    ChirpError::Error error = factory->createService("Service1", &service1);
+    ChirpError::Error error = factory->createService("Tarzan", &service1);
     if (error != ChirpError::SUCCESS || !service1) {
         std::cout << "ERROR: Failed to create Service1" << std::endl;
         return 1;
@@ -93,15 +127,17 @@ int main() {
     
     //std::cout << "Creating Service2..." << std::endl;
     IChirp* service2 = nullptr;
-    error = factory->createService("Service2", &service2);
+    error = factory->createService("Hulk", &service2);
     if (error != ChirpError::SUCCESS || !service2) {
         std::cout << "ERROR: Failed to create Service2" << std::endl;
         return 1;
     }
     
     // Create handlers for services
-    ServiceHandler handler1("Service1");
-    ServiceHandler handler2("Service2");
+    ServiceHandler handler1("Tarzan");
+    ServiceHandler handler2("Hulk");
+    handler1.bindService(service1);
+    handler2.bindService(service2);
     
     // Register message handlers
     //std::cout << "Registering handlers for services..." << std::endl;
@@ -175,32 +211,27 @@ int main() {
         return 1;
     }
     
-    // Phase 1: Both services responding normally (250ms each)
-    //std::cout << "=== PHASE 1: Both services responding normally (250ms per message) ===" << std::endl;
-    for (int i = 1; i <= 12; ++i) {
-        std::ostringstream oss;
-        oss << "Data packet #" << i;
-        
-        service1->postMsg("ProcessData", oss.str());
-        service2->postMsg("ProcessData", oss.str());
-        
-        // Sleep longer than message processing to allow pet timers to fire
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    // Phase 1: Chain posts from handlers for indices 1..12
+    handler1.setPostingRange(1, 12);
+    handler2.setPostingRange(1, 12);
+    service1->postMsg("ProcessData", std::string("Data packet #1"));
+    service2->postMsg("ProcessData", std::string("Data packet #1"));
+    while (handler1.getMessageCount() < 12 || handler2.getMessageCount() < 12) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
     
     //std::cout << "\n=== PHASE 2: Service2 becomes slow (2.5 seconds per message) ===" << std::endl;
     //std::cout << "Changing Service2 response time to 2.5 seconds...\n" << std::endl;
     handler2.setResponseTime(4000);
     
-    // Phase 2: Service2 is slow (2.5s > 2s threshold = 2 * 1s pet duration)
-    for (int i = 13; i <= 20; ++i) {
-        std::ostringstream oss;
-        oss << "Data packet #" << i;
-        
-        service1->postMsg("ProcessData", oss.str());
-        service2->postMsg("ProcessData", oss.str());  // This will cause watchdog alerts
-        
-        std::this_thread::sleep_for(std::chrono::milliseconds(250));
+    // Phase 2: Continue chained posts 13..20, make Hulk slow
+    handler2.setResponseTime(4000);
+    handler1.setPostingRange(13, 20);
+    handler2.setPostingRange(13, 20);
+    service1->postMsg("ProcessData", std::string("Data packet #13"));
+    service2->postMsg("ProcessData", std::string("Data packet #13"));
+    while (handler1.getMessageCount() < 20 || handler2.getMessageCount() < 20) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
     
     std::this_thread::sleep_for(std::chrono::milliseconds(60000));
@@ -213,8 +244,8 @@ int main() {
     service2->shutdown();
     
     //std::cout << "Destroying services..." << std::endl;
-    factory->destroyService("Service1");
-    factory->destroyService("Service2");
+    factory->destroyService("Tarzan");
+    factory->destroyService("Hulk");
     
     //std::ostringstream summary;
     //summary << "\nExample completed successfully!\n"
