@@ -214,7 +214,7 @@ ChirpError::Error ChirpWatchDog::onMonitorTick(const std::string& timerMessage) 
     // Get all monitored services and check for missed pets
     std::vector<std::string> serviceNames = _factory->listServiceNames();
     
-    std::cout << "[ChirpWatchDog::onMonitorTick] Called at: " 
+    std::cout << "[ChirpWatchDog::onMonitorTick] ************Called at: " 
               << std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count() << "ms" << std::endl;
     
     if (!_factory) {

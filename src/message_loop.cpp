@@ -20,38 +20,26 @@ void MessageLoop::spin() {
     _empty_mtx.lock();
     while (!st_thread) {
 
-      if (_message_queue.empty()) {
-
-          ChirpLogger::instance(_service_name) << "waiting. MsgQ empty." << std::endl;
           // Get duration to next timer event
-          std::chrono::milliseconds duration = _timer_mgr.getDurationToNextTimerEvent();
-            
-          if (duration.count() == 0) {
+        std::chrono::milliseconds duration = _timer_mgr.getDurationToNextTimerEvent();
 
-              // No timers or timer already elapsed, just wait on mutex
-              _empty_mtx.lock();
-              lockAcquired = true;
+        if ((duration.count() == 0) && (_message_queue.empty())) {
 
-          } else {
-
-          // Wait on mutex with timeout
-          lockAcquired = _empty_mtx.try_lock_for(duration);
-                
-          // Timeout occurred, timers have elapsed
-          if (!lockAcquired) 
-              fireTimerHandlers(st_thread);
+            ChirpLogger::instance(_service_name) << "waiting. MsgQ empty." << std::endl;
+            // No timers or timer already elapsed, just wait on mutex
+            _empty_mtx.lock();
         }
-      } else {
-          // Queue is not empty, we should process messages
-          lockAcquired = true;
-      }
+        if ((duration.count() > 0) && (_message_queue.empty())) {
 
-      if (lockAcquired) {
-          lockAcquired = false;
-          fireRegularHandlers(st_thread);
-      }
-    }
-  ChirpLogger::instance(_service_name) << "Spin loop stopped." << std::endl;
+            // Wait on mutex with timeout
+            lockAcquired = _empty_mtx.try_lock_for(duration);
+        }
+
+        fireTimerHandlers(st_thread);
+        fireRegularHandlers(st_thread);
+    }   
+     
+    ChirpLogger::instance(_service_name) << "Spin loop stopped." << std::endl;
 }
 
 void MessageLoop::enqueue(Message* m) {
