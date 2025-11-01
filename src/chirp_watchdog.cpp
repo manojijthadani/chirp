@@ -101,13 +101,12 @@ ChirpError::Error ChirpWatchDog::start() {
 
 ChirpError::Error ChirpWatchDog::stop() {
     
-    if (!_chirpService) {
+    if (!_chirpService) 
         return ChirpError::INVALID_SERVICE_STATE;
-    }
     
-    for (auto& [name, t] : _servicePetTimers) {
-        if (t) {
-            t->stop();
+    for (auto& [name, timer] : _servicePetTimers) {
+        if (timer) {
+            timer->stop();
         }
     }
 
@@ -155,6 +154,7 @@ void ChirpWatchDog::installPetTimers() {
 }
 
 void ChirpWatchDog::uninstallPetTimers() {
+
     for (auto& kv : _servicePetTimers) {
         const std::string& name = kv.first;
         if (_factory) {
@@ -171,9 +171,8 @@ void ChirpWatchDog::uninstallPetTimers() {
 
 void ChirpWatchDog::installMonitorTimer() {
 
-    if (!_chirpService) {
+    if (!_chirpService) 
         return;
-    }
         
     (void)_chirpService->registerMsgHandler("monitorTimerElapsed", this, &ChirpWatchDog::onMonitorTick);
     

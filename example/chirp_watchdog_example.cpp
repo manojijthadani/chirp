@@ -234,9 +234,10 @@ int main() {
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
     
-    std::this_thread::sleep_for(std::chrono::milliseconds(60000));
     // Cleanup
     //std::cout << "\n=== Shutting down ===" << std::endl;
+    // Stop watchdog (removes timers from services) then delete
+    watchdog->stop();
     delete watchdog;
     
     //std::cout << "Stopping services..." << std::endl;
