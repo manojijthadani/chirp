@@ -23,10 +23,7 @@
  */
 class ChirpFactory : public IChirpFactory {
 public:
-    /*
-     * Get the singleton instance of ChirpFactory
-     * Returns: Reference to the singleton instance
-     */
+    // Singleton accessor
     static ChirpFactory& getInstance();
 
     // Implementation of IChirpFactory interface

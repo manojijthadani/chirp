@@ -19,6 +19,7 @@ IChirpFactory& IChirpFactory::getInstance() {
     return ChirpFactory::getInstance();
 }
 
+// Concrete singleton accessor
 ChirpFactory& ChirpFactory::getInstance() {
     static ChirpFactory instance;
     return instance;

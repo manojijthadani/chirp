@@ -101,8 +101,8 @@ void testChirpFactorySingleton() {
 
     try {
         // Test singleton pattern
-        ChirpFactory& factory1 = ChirpFactory::getInstance();
-        ChirpFactory& factory2 = ChirpFactory::getInstance();
+        IChirpFactory& factory1 = IChirpFactory::getInstance();
+        IChirpFactory& factory2 = IChirpFactory::getInstance();
 
         // Should be the same instance
         testFramework.assertTrue(&factory1 == &factory2, "Singleton should return same instance");
@@ -117,7 +117,7 @@ void testChirpFactoryGetVersion() {
     testFramework.startTest("ChirpFactory_GetVersion_Correct");
 
     try {
-        ChirpFactory& factory = ChirpFactory::getInstance();
+        IChirpFactory& factory = IChirpFactory::getInstance();
 
         const std::string& version = factory.getVersion();
         testFramework.assertTrue(!version.empty(), "Version should not be empty");
@@ -133,7 +133,7 @@ void testChirpFactoryGetServiceCount() {
     testFramework.startTest("ChirpFactory_GetServiceCount_Initial");
 
     try {
-        ChirpFactory& factory = ChirpFactory::getInstance();
+        IChirpFactory& factory = IChirpFactory::getInstance();
 
         // Clean start
         factory.shutdownAllServices();
@@ -152,7 +152,7 @@ void testChirpFactoryShutdownAllServices() {
     testFramework.startTest("ChirpFactory_ShutdownAllServices_Empty");
 
     try {
-        ChirpFactory& factory = ChirpFactory::getInstance();
+        IChirpFactory& factory = IChirpFactory::getInstance();
 
         // Shutdown all services (should work even with no services)
         factory.shutdownAllServices();
@@ -168,13 +168,13 @@ void testChirpFactoryCreateService() {
     testFramework.startTest("ChirpFactory_CreateService_Success");
 
     try {
-        ChirpFactory& factory = ChirpFactory::getInstance();
+        IChirpFactory& factory = IChirpFactory::getInstance();
 
         // Clean start
         factory.shutdownAllServices();
 
         // Create a new service
-        Chirp* service = nullptr;
+        IChirp* service = nullptr;
         ChirpError::Error result = factory.createService("TestService1", &service);
 
         testFramework.assertTrue(result == ChirpError::SUCCESS, "Service creation should succeed");
@@ -194,18 +194,18 @@ void testChirpFactoryCreateDuplicateService() {
     testFramework.startTest("ChirpFactory_CreateDuplicateService_Error");
 
     try {
-        ChirpFactory& factory = ChirpFactory::getInstance();
+        IChirpFactory& factory = IChirpFactory::getInstance();
 
         // Clean start
         factory.shutdownAllServices();
 
         // Create first service
-        Chirp* service1 = nullptr;
+        IChirp* service1 = nullptr;
         ChirpError::Error result1 = factory.createService("TestService2", &service1);
         testFramework.assertTrue(result1 == ChirpError::SUCCESS, "First service creation should succeed");
 
         // Try to create duplicate service
-        Chirp* service2 = nullptr;
+        IChirp* service2 = nullptr;
         ChirpError::Error result2 = factory.createService("TestService2", &service2);
         testFramework.assertTrue(result2 == ChirpError::SERVICE_ALREADY_EXISTS, "Duplicate service should return error");
         testFramework.assertTrue(service2 == nullptr, "Duplicate service pointer should be null");
@@ -223,17 +223,17 @@ void testChirpFactoryGetService() {
     testFramework.startTest("ChirpFactory_GetService_Success");
 
     try {
-        ChirpFactory& factory = ChirpFactory::getInstance();
+        IChirpFactory& factory = IChirpFactory::getInstance();
 
         // Clean start
         factory.shutdownAllServices();
 
         // Create a service
-        Chirp* createdService = nullptr;
+        IChirp* createdService = nullptr;
         factory.createService("TestService3", &createdService);
 
         // Get the service
-        Chirp* retrievedService = factory.getService("TestService3");
+        IChirp* retrievedService = factory.getService("TestService3");
         testFramework.assertTrue(retrievedService != nullptr, "Retrieved service should not be null");
         testFramework.assertTrue(retrievedService == createdService, "Retrieved service should be same instance");
         testFramework.assertEquals("TestService3", retrievedService->getServiceName(), "Service name should match");
@@ -251,10 +251,10 @@ void testChirpFactoryGetNonExistentService() {
     testFramework.startTest("ChirpFactory_GetNonExistentService_Null");
 
     try {
-        ChirpFactory& factory = ChirpFactory::getInstance();
+        IChirpFactory& factory = IChirpFactory::getInstance();
 
         // Try to get non-existent service
-        Chirp* service = factory.getService("NonExistentService");
+        IChirp* service = factory.getService("NonExistentService");
         testFramework.assertTrue(service == nullptr, "Non-existent service should return null");
 
         testFramework.endTest(true);
@@ -267,13 +267,13 @@ void testChirpFactoryDestroyService() {
     testFramework.startTest("ChirpFactory_DestroyService_Success");
 
     try {
-        ChirpFactory& factory = ChirpFactory::getInstance();
+        IChirpFactory& factory = IChirpFactory::getInstance();
 
         // Clean start
         factory.shutdownAllServices();
 
         // Create a service
-        Chirp* service = nullptr;
+        IChirp* service = nullptr;
         factory.createService("TestService4", &service);
 
         // Verify service exists
@@ -297,7 +297,7 @@ void testChirpFactoryDestroyNonExistentService() {
     testFramework.startTest("ChirpFactory_DestroyNonExistentService_False");
 
     try {
-        ChirpFactory& factory = ChirpFactory::getInstance();
+        IChirpFactory& factory = IChirpFactory::getInstance();
 
         // Try to destroy non-existent service
         bool result = factory.destroyService("NonExistentService");
@@ -313,16 +313,16 @@ void testChirpFactoryMultipleServices() {
     testFramework.startTest("ChirpFactory_MultipleServices_Management");
 
     try {
-        ChirpFactory& factory = ChirpFactory::getInstance();
+        IChirpFactory& factory = IChirpFactory::getInstance();
 
         // Clean start
         factory.shutdownAllServices();
         testFramework.assertTrue(factory.getServiceCount() == 0, "Initial service count should be 0");
 
         // Create multiple services
-        Chirp* service1 = nullptr;
-        Chirp* service2 = nullptr;
-        Chirp* service3 = nullptr;
+        IChirp* service1 = nullptr;
+        IChirp* service2 = nullptr;
+        IChirp* service3 = nullptr;
 
         factory.createService("CountTest1", &service1);
         testFramework.assertTrue(factory.getServiceCount() == 1, "Service count should be 1");
@@ -351,13 +351,13 @@ void testChirpFactoryServiceLifecycle() {
     testFramework.startTest("ChirpFactory_ServiceLifecycle_Basic");
 
     try {
-        ChirpFactory& factory = ChirpFactory::getInstance();
+        IChirpFactory& factory = IChirpFactory::getInstance();
 
         // Clean start
         factory.shutdownAllServices();
 
         // Create service
-        Chirp* service = nullptr;
+        IChirp* service = nullptr;
         ChirpError::Error createResult = factory.createService("LifecycleTest", &service);
         testFramework.assertTrue(createResult == ChirpError::SUCCESS, "Service creation should succeed");
         testFramework.assertTrue(service != nullptr, "Service should not be null");
@@ -379,13 +379,13 @@ void testChirpFactoryErrorHandling() {
     testFramework.startTest("ChirpFactory_ErrorHandling_Basic");
 
     try {
-        ChirpFactory& factory = ChirpFactory::getInstance();
+        IChirpFactory& factory = IChirpFactory::getInstance();
 
         // Clean start
         factory.shutdownAllServices();
 
         // Test with empty service name (might succeed or fail, but shouldn't crash)
-        Chirp* service = nullptr;
+        IChirp* service = nullptr;
         ChirpError::Error result = factory.createService("", &service);
         // Result can be SUCCESS or error, as long as no crash occurs
 
