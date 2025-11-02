@@ -45,11 +45,6 @@ IChirp* ChirpWatchDog::getChirpService() {
     return _chirpService;
 }
 
-const IChirp* ChirpWatchDog::getChirpService() const {
-    
-    return _chirpService;
-}
-
 ChirpError::Error ChirpWatchDog::configure(IChirpFactory* factory,
                                            const std::chrono::milliseconds& petDuration) {
     

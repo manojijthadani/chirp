@@ -22,7 +22,6 @@ public:
     
     // Getter for the internal Chirp service
     IChirp* getChirpService() override;
-    const IChirp* getChirpService() const override;
 
 private:
 

@@ -21,6 +21,5 @@ public:
     
     // Getter for the internal Chirp service
     virtual IChirp* getChirpService() = 0;
-    virtual const IChirp* getChirpService() const = 0;
 };
 
