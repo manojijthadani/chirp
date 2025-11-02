@@ -3,7 +3,7 @@
  * @brief Abstract timer interface for the Chirp framework
  * @author Chirp Team
  * @date 2025
- * @version 1.0
+ * @version 2.0
  * 
  * This file defines the IChirpTimer interface for creating and managing timer instances.
  * This interface ensures that different timer implementations can be used
@@ -114,9 +114,4 @@ public:
      * @return The current timer duration in milliseconds
      */
     virtual std::chrono::milliseconds getDuration() const = 0;
-
-    /**
-     * @brief Get the timer name
-     * @return The name of the timer
-     */
 };

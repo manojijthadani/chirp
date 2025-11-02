@@ -3,7 +3,7 @@
  * @brief Main service interface for Chirp framework
  * @author Chirp Team 
  * @date 2025
- * @version 1.0
+ * @version 2.0
  * 
  * This file defines the IChirp class, which provides a high-level interface
  * for creating and managing services with message-passing capabilities.

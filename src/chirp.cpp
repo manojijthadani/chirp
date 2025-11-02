@@ -11,7 +11,7 @@ thread_local bool IChirp::_validateOnly = false;
 // A simple reflection pattern implemented to abstract IChirp class.
 // Cannot implement a typical interface pattern because templated functions 
 // cannot be virtual as of C++ 20.
-const std::string IChirp::_version = "1.0";
+const std::string IChirp::_version = "2.0";
 
 const std::string& IChirp::getVersion() {
     return _version;

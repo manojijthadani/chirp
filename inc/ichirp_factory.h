@@ -3,7 +3,7 @@
  * @brief Abstract factory interface for creating Chirp services
  * @author Chirp Team
  * @date 2025
- * @version 1.0
+ * @version 2.0
  * 
  * This file defines the IChirpFactory interface for creating and managing Chirp service instances.
  * This interface ensures that different factory implementations can be used
