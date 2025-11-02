@@ -21,9 +21,7 @@
 
 #include "ichirp_watchdog.h"
 #include "ichirp.h"
-#include "chirp_factory.h"
 #include "chirp_error.h"
-#include "chirp_watchdog.hpp"
 
 // Mutex for thread-safe console output
 std::mutex consoleMutex;
@@ -112,7 +110,7 @@ int main() {
     threadSafePrint("Demonstrates watchdog monitoring of service responsiveness\n");
     
     // Get the factory singleton
-    IChirpFactory* factory = &ChirpFactory::getInstance();
+    IChirpFactory* factory = &IChirpFactory::getInstance();
     
     // Create two services
     threadSafePrint("Creating Service Parrot...");

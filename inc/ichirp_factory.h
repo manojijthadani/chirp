@@ -37,6 +37,9 @@ class IChirp;
  */
 class IChirpFactory {
 public:
+    // Singleton access via interface
+    static IChirpFactory& getInstance();
+
     /**
      * @brief Virtual destructor for proper cleanup
      */

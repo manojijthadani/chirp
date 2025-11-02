@@ -2,7 +2,6 @@
 #include <thread>
 #include <chrono>
 #include "ichirp_factory.h"
-#include "chirp_factory.h"
 #include "ichirp.h"
 #include "chirp_error.h"
 
@@ -24,11 +23,11 @@ public:
 int main() {
     std::cout << "=== ChirpFactory Example ===" << std::endl;
     
-    // Get the singleton instance of ChirpFactory
-    auto& factory = ChirpFactory::getInstance();
+    // Get the singleton instance via interface
+    IChirpFactory& factory = IChirpFactory::getInstance();
     std::cout << "ChirpFactory version: " << factory.getVersion() << std::endl;
     
-    // Demonstrate interface usage - we can use the interface pointer
+    // Demonstrate interface pointer usage
     IChirpFactory* factory_interface = &factory;
     std::cout << "Interface version: " << factory_interface->getVersion() << std::endl;
     

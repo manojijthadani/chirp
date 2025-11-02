@@ -7,11 +7,17 @@
  */
 
 #include "chirp_factory.h"
+#include "ichirp_factory.h"
 #include "ichirp.h"
 #include "chirp_logger.h"
 
 // Static member initialization
 const std::string ChirpFactory::_version = "1.0";
+
+// Interface-level singleton accessor
+IChirpFactory& IChirpFactory::getInstance() {
+    return ChirpFactory::getInstance();
+}
 
 ChirpFactory& ChirpFactory::getInstance() {
     static ChirpFactory instance;
