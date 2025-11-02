@@ -10,6 +10,13 @@
 // IChirpWatchDog constructor implementation
 IChirpWatchDog::IChirpWatchDog(const std::string& name) {}
 
+// Static factory that hides concrete type from callers
+IChirpWatchDog* IChirpWatchDog::createWatchdog(const std::string& name) {
+    
+    ChirpWatchDog* wd = new (std::nothrow) ChirpWatchDog(name);
+    return static_cast<IChirpWatchDog*>(wd);
+}
+
 ChirpWatchDog::ChirpWatchDog(const std::string& name) 
     : IChirpWatchDog(name), _factory(nullptr), _petDuration(0) {
  

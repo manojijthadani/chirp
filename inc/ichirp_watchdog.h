@@ -14,6 +14,9 @@ public:
     explicit IChirpWatchDog(const std::string& name);
     virtual ~IChirpWatchDog() = default;
 
+    // Factory: creates a concrete ChirpWatchDog and returns as interface pointer
+    static IChirpWatchDog* createWatchdog(const std::string& name);
+
     virtual ChirpError::Error configure(IChirpFactory* factory,
                                         const std::chrono::milliseconds& petDuration) = 0;
     virtual ChirpError::Error start() = 0;

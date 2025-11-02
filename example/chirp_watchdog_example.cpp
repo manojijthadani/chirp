@@ -61,9 +61,10 @@ public:
     }
     
     ChirpError::Error handleMessage(const std::string& payload) {
-        std::lock_guard<std::mutex> lock(consoleMutex);
-        std::cout << "[" << getCurrentTimeWithMsec() << "] +++++++++++++[" << _serviceName << "] Received message: " << payload 
-                  << " (simulating " << _responseTime << "ms work)" << std::endl;
+        std::ostringstream oss;
+        oss << "[" << getCurrentTimeWithMsec() << "] [" << _serviceName << "] Received message: " << payload
+            << " (simulating " << _responseTime << "ms work)";
+        threadSafePrint(oss.str());
         
         // Simulate work by sleeping
         std::this_thread::sleep_for(std::chrono::milliseconds(_responseTime));
@@ -101,92 +102,89 @@ private:
 class WatchdogHandler {
 public:
     ChirpError::Error onMissedPet(const std::string& serviceName) {
-        std::lock_guard<std::mutex> lock(consoleMutex);
-        std::cout << "\n!!! [WATCHDOG ALERT] Service '" << serviceName 
-                  << "' missed its petting - may be unresponsive !!!\n" << std::endl;
-        std::cout.flush();
+        threadSafePrint("\n!!! [WATCHDOG ALERT] Service '" + serviceName + "' missed its petting - may be unresponsive !!!\n");
         return ChirpError::SUCCESS;
     }
 };
 
 int main() {
-    //std::cout << "\n=== ChirpWatchDog Example ===" << std::endl;
-    //std::cout << "Demonstrates watchdog monitoring of service responsiveness\n" << std::endl;
+    threadSafePrint("\n=== ChirpWatchDog Example ===");
+    threadSafePrint("Demonstrates watchdog monitoring of service responsiveness\n");
     
     // Get the factory singleton
     IChirpFactory* factory = &ChirpFactory::getInstance();
     
     // Create two services
-    //std::cout << "Creating Service1..." << std::endl;
+    threadSafePrint("Creating Service Parrot...");
     IChirp* service1 = nullptr;
-    ChirpError::Error error = factory->createService("Tarzan", &service1);
+    ChirpError::Error error = factory->createService("Parrot", &service1);
     if (error != ChirpError::SUCCESS || !service1) {
-        std::cout << "ERROR: Failed to create Service1" << std::endl;
+        threadSafePrint("ERROR: Failed to create Parrot");
         return 1;
     }
     
-    //std::cout << "Creating Service2..." << std::endl;
+    threadSafePrint("Creating Service Sparrow...");
     IChirp* service2 = nullptr;
-    error = factory->createService("Hulk", &service2);
+    error = factory->createService("Sparrow", &service2);
     if (error != ChirpError::SUCCESS || !service2) {
-        std::cout << "ERROR: Failed to create Service2" << std::endl;
+        threadSafePrint("ERROR: Failed to create Sparrow");
         return 1;
     }
     
     // Create handlers for services
-    ServiceHandler handler1("Tarzan");
-    ServiceHandler handler2("Hulk");
+    ServiceHandler handler1("Parrot");
+    ServiceHandler handler2("Sparrow");
     handler1.bindService(service1);
     handler2.bindService(service2);
     
     // Register message handlers
-    //std::cout << "Registering handlers for services..." << std::endl;
+    threadSafePrint("Registering handlers for services...");
     error = service1->registerMsgHandler("ProcessData", &handler1, &ServiceHandler::handleMessage);
     if (error != ChirpError::SUCCESS) {
-        std::cout << "ERROR: Failed to register Service1 handler" << std::endl;
+        threadSafePrint("ERROR: Failed to register Parrot handler");
         return 1;
     }
     
     error = service2->registerMsgHandler("ProcessData", &handler2, &ServiceHandler::handleMessage);
     if (error != ChirpError::SUCCESS) {
-        std::cout << "ERROR: Failed to register Service2 handler" << std::endl;
+        threadSafePrint("ERROR: Failed to register Sparrow handler");
         return 1;
     }
     
     // Enable watchdog monitoring on both services
-    //std::cout << "Enabling watchdog monitoring on Service1..." << std::endl;
+    threadSafePrint("Enabling watchdog monitoring on Parrot...");
     service1->setWatchDogMonitoring(true);
     
-    //std::cout << "Enabling watchdog monitoring on Service2..." << std::endl;
+    threadSafePrint("Enabling watchdog monitoring on Sparrow...");
     service2->setWatchDogMonitoring(true);
     
     // Start the services
-    //std::cout << "Starting services..." << std::endl;
+    threadSafePrint("Starting services...");
     error = service1->start();
     if (error != ChirpError::SUCCESS) {
-        std::cout << "ERROR: Failed to start Service1" << std::endl;
+        threadSafePrint("ERROR: Failed to start Service Parrot");
         return 1;
     }
     
     error = service2->start();
     if (error != ChirpError::SUCCESS) {
-        std::cout << "ERROR: Failed to start Service2" << std::endl;
+        threadSafePrint("ERROR: Failed to start Service Sparrow");
         return 1;
     }
     
     // Create and configure the watchdog service
-    //std::cout << "Creating ChirpWatchDog service..." << std::endl;
-    IChirpWatchDog* watchdog = new ChirpWatchDog("Watchdog");
+    threadSafePrint("Creating ChirpWatchDog service...");
+    IChirpWatchDog* watchdog = IChirpWatchDog::createWatchdog("Watchdog");
     if (!watchdog) {
-        std::cout << "ERROR: Failed to create watchdog" << std::endl;
+        threadSafePrint("ERROR: Failed to create watchdog");
         return 1;
     }
     
     // Configure watchdog with 1 second pet duration
-    //std::cout << "Configuring watchdog with 1 second pet duration..." << std::endl;
+    threadSafePrint("Configuring watchdog with 1 second pet duration...");
     error = watchdog->configure(factory, std::chrono::milliseconds(1000));
     if (error != ChirpError::SUCCESS) {
-        std::cout << "ERROR: Failed to configure watchdog" << std::endl;
+        threadSafePrint("ERROR: Failed to configure watchdog");
         delete watchdog;
         return 1;
     }
@@ -197,16 +195,16 @@ int main() {
                                                             &watchdogHandler, 
                                                             &WatchdogHandler::onMissedPet);
     if (error != ChirpError::SUCCESS) {
-        std::cout << "ERROR: Failed to register watchdog handler" << std::endl;
+        threadSafePrint("ERROR: Failed to register watchdog handler");
         delete watchdog;
         return 1;
     }
     
     // Start the watchdog
-    //std::cout << "Starting watchdog service...\n" << std::endl;
+    threadSafePrint("Starting watchdog service...\n");
     error = watchdog->start();
     if (error != ChirpError::SUCCESS) {
-        std::cout << "ERROR: Failed to start watchdog" << std::endl;
+        threadSafePrint("ERROR: Failed to start watchdog");
         delete watchdog;
         return 1;
     }
@@ -220,23 +218,20 @@ int main() {
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
     
-    //std::cout << "\n=== PHASE 2: Service2 becomes slow (2.5 seconds per message) ===" << std::endl;
-    //std::cout << "Changing Service2 response time to 2.5 seconds...\n" << std::endl;
-    handler2.setResponseTime(4000);
+    threadSafePrint("\n=== PHASE 2: Sparrow becomes slow (3 seconds per message) ===");
+    handler2.setResponseTime(3000);
     
     // Phase 2: Continue chained posts 13..20, make Hulk slow
-    handler2.setResponseTime(4000);
-    handler1.setPostingRange(13, 20);
-    handler2.setPostingRange(13, 20);
+    handler1.setPostingRange(13, 15);
+    handler2.setPostingRange(13, 15);
     service1->postMsg("ProcessData", std::string("Data packet #13"));
     service2->postMsg("ProcessData", std::string("Data packet #13"));
-    while (handler1.getMessageCount() < 20 || handler2.getMessageCount() < 20) {
+    while (handler1.getMessageCount() < 15 || handler2.getMessageCount() < 15) {
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
     
     // Cleanup
-    //std::cout << "\n=== Shutting down ===" << std::endl;
-    // Stop watchdog (removes timers from services) then delete
+    threadSafePrint("\n=== Shutting down ===");
     watchdog->stop();
     delete watchdog;
     
@@ -247,12 +242,6 @@ int main() {
     //std::cout << "Destroying services..." << std::endl;
     factory->destroyService("Tarzan");
     factory->destroyService("Hulk");
-    
-    //std::ostringstream summary;
-    //summary << "\nExample completed successfully!\n"
-    //        << "Service1 processed " << handler1.getMessageCount() << " messages\n"
-    //        << "Service2 processed " << handler2.getMessageCount() << " messages";
-    //std::cout << summary.str() << std::endl;
     
     return 0;
 }
