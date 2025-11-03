@@ -1,6 +1,6 @@
 # Chirp
 
-![Project Logo](../asset/chirp_logo.png)
+![	](../asset/chirp_logo.png)	
 
 # Architecture and Design Document
 
@@ -142,7 +142,9 @@ sequenceDiagram
 
 ### Message Handler Interface
 
-The message handler system provides a more object-oriented approach. The new interface exclusively supports member function handlers bound to object instances, offering several advantages:
+The message handler system provides a more object-oriented approach. The new interface exclusively supports member function handlers bound to object instances.
+
+When handlers are registered with only one Chirp Service, they are inherently thread-safe. All the handlers will be called on the same thread. If the same handler is registered across multiple Chirp Services, this thread-safety guarantee no longer holds. To prevent race conditions in such scenarios, a mutex should be employed as appropriate.
 
 #### Handler Registration Pattern
 ```cpp
@@ -165,8 +167,8 @@ private:
 };
 
 // Usage
-ServiceHandlers handlers;
-ChirpError::Error error = service.registerMsgHandler("AsyncMessage", &handlers, &ServiceHandlers::asyncHandler);
+ServiceHandlers handler;
+ChirpError::Error err = service.registerMsgHandler("AsyncMessage", &handler, &ServiceHandlers::asyncHandler);
 // Check error
 ..
     
@@ -176,6 +178,9 @@ error = service.registerMsgHandler("SyncMessage", &handlers, &ServiceHandlers::s
 ```
 
 ### Message Structure
+
+The message structure shown below is for **internal use only**.
+
 ```cpp
 class Message {
     std::string _msg;            // Unique message type identifier
@@ -198,7 +203,7 @@ class Message {
 
 Debugging in Chirp can be enabled by setting the environment variable `CHIRP_SERVICES_DEBUG=1`. When enabled, a log file named `chirp_log.txt` is created in the `/tmp` directory each time a process using Chirp starts. Note that this environment variable must be set **before** the process is launched. With each startup, any existing log file is overwritten.
 
-The logger is implemented as a singleton, allowing it to be accessed safely from any thread.
+The logger is implemented as a singleton, allowing it to be accessed safely from any thread. This may allow the user of the library to get a better understanding of the Framework based on activities in the process.
 
 ### Usage Pattern
 
@@ -207,6 +212,12 @@ ChirpLogger::instance("ServiceName") << "Log message" << std::endl;
 ```
 
 ## API Design
+
+All public headers are located in the **`inc`** folder. The source tree follows a conventional C++ interface pattern, providing a clean abstraction over implementation details. The implementation itself resides in the **`src`** folder.
+
+Example applications, such as **`chirp_test`** and **`chirp_timer_demo`**, can be found in the **`example`** folder and demonstrate typical API usage. During compilation, the sources produce a shared library in the **`lib`** folder and place the example binaries in the **`bin`** folder.
+
+Developers should take care not to include any headers from the **`src`** directory when using this package.
 
 ### Error Handling
 
@@ -232,35 +243,6 @@ if (error != ChirpError::SUCCESS) {
 ```
 
 **Thread State Validation**: Messages can only be posted when the service thread is in STARTED or RUNNING state. Attempting to post messages before the service is started or after it's stopped will return `ChirpError::INVALID_SERVICE_STATE`.
-
-
-### Service Creation and Management
-```cpp
-// Factory-based service creation with error handling
-auto& factory = IChirpFactory::getInstance();
-Chirp* service = nullptr;
-ChirpError::Error error = factory.createService("ServiceCreatedByFactory", &service);
-// Check error
-..
-    
-// Create handler instance and register message handlers
-MessageHandlers handlers;
-ChirpError::Error error = service.registerMsgHandler("Message", &handlers, &MessageHandlers::handlerMethod);
-// Check error
---
-    
-// Start service
-service.start();
-
-// Post asynchronous messages with error handling
-ChirpError::Error error = service.postMsg("Message", arg1, arg2, arg3);
-// Check error
-..
-    
-// Factory-based service management
-factory.destroyService("MyService");
-factory.shutdownAllServices();
-```
 
 ### Synchronous Message Handling
 
@@ -300,11 +282,6 @@ The ChirpFactory provides a centralized approach to creating and managing Chirp 
 
 ### Factory Architecture
 
-The factory system consists of two main components:
-
-1. **IChirpFactory Interface** (`inc/ichirp_factory.h`): Abstract interface defining the contract for factory implementations
-2. **ChirpFactory Implementation** (`src/chirp_factory.h`): Concrete singleton implementation of the factory interface
-
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    Factory Layer                            │
@@ -338,7 +315,7 @@ The factory system consists of two main components:
 
 ```cpp
 // Get the singleton factory instance
-auto& factory = ChirpFactory::getInstance();
+auto& factory = IChirpFactory::getInstance();
 
 // Create services through the factory
 auto service1 = factory.createService("LoggerService");
@@ -352,6 +329,10 @@ service1->start();
 
 // Retrieve existing services
 auto existingService = factory.getService("LoggerService");
+
+// Post asynchronous messages with error handling
+ChirpError::Error error = service1->postMsg("Log", arg1, arg2, arg3);
+// Check error
 
 // Get service count
 size_t count = factory.getServiceCount();
@@ -386,9 +367,8 @@ The timer system consists of three main components:
 │  ┌────────────────────────────────────────────────────────┐ │
 │  │              MessageLoop                               │ │
 │  │  ┌──────────────────────────────────────────────────┐  │ │
-│  │  │  • Timed Wait on Mutex                           │  │ │
-│  │  │  • fireTimerHandlers(st_thread&)                 │  │ │
-│  │  │  • fireRegularHandlers(st_thread&)               │  │ │
+│  │  │  • fireTimerHandlers()                           │  │ │
+│  │  │  • fireRegularHandlers()                         │  │ │
 │  │  └──────────────────────────────────────────────────┘  │ │
 │  └────────────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────┘
@@ -501,7 +481,7 @@ service.removeChirpTimer(&timer);
 
 ### Timer Limitations and Considerations
 
-- **Minimum Resolution**: Practical minimum ~1ms due to OS scheduling
+- **Minimum Resolution**: Practical minimum ~2ms due to OS scheduling
 - **Handler Blocking**: Long-running handlers delay subsequent timers
 - **Timer Accuracy**: Affected by system load and handler execution time
 - **Memory**: O(n) space for n active timers
@@ -701,6 +681,6 @@ nice-services/
 
 ## Conclusion
 
-Chirp provides a robust foundation for building concurrent, message-driven applications in C++. The architecture emphasizes simplicity, type safety, and performance while maintaining flexibility for future enhancements. The modular design allows for easy extension and customization to meet specific application requirements.
+Chirp provides a robust foundation for building concurrent, message-driven applications in C++ that involves multiple threads. The architecture emphasizes simplicity, type safety, and performance while maintaining flexibility for future enhancements. The modular design allows for easy extension and customization to meet specific application requirements.
 
 The framework's thread-safe message passing system, combined with its template-based type safety and object-oriented message handler interface, makes it suitable for a wide range of concurrent programming scenarios, from simple service communication to complex distributed systems. The recent refactoring to member function-based handlers provides better encapsulation and state management capabilities. 
