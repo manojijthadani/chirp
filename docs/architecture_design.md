@@ -1,5 +1,7 @@
 # Chirp
 
+![Project Logo](../asset/chirp_logo.png)
+
 # Architecture and Design Document
 
 ## Table of Contents
@@ -8,13 +10,14 @@
 3. [System Architecture](#system-architecture)
 4. [Factory Pattern](#factory-pattern)
 5. [Timer System](#timer-system)
-6. [Threading Model](#threading-model)
-7. [Message Passing System](#message-passing-system)
-8. [Logging System](#logging-system)
-9. [API Design](#api-design)
-10. [Build System](#build-system)
-11. [Testing Strategy](#testing-strategy)
-12. [Future Enhancements](#future-enhancements)
+6. [Watchdog System](#watchdog-system)
+7. [Threading Model](#threading-model)
+8. [Message Passing System](#message-passing-system)
+9. [Logging System](#logging-system)
+10. [API Design](#api-design)
+11. [Build System](#build-system)
+12. [Testing Strategy](#testing-strategy)
+13. [Future Enhancements](#future-enhancements)
 
 ## Purpose
 
@@ -26,12 +29,18 @@ Chirp is a project that aims at providing a very light weight and simple API wri
 
 ## Project Overview
 
-The API for Chirp enables developers to create services as individual threads. Each service runs in its own thread and is responsible for handling multiple tasks. Tasks are registered to a service using the `registerMsgHandler(..)` function that associates a unique message to a task. This function returns a `ChirpError::Error` code indicating success or failure. Once registered, these tasks are triggered when the service receives corresponding messages through the `postMsg(..)` call. Developers must ensure that the order and data types of parameters remain consistent between the `registerMsgHandler(..)` and `postMsg(..)` calls. If there is a mismatch, the helper methods will return `INVALID_ARGUMENTS` and a message will be provided in the debug log. Internally, each service manages an event queue to handle and dispatch messages to the appropriate task handlers. The tasks registered for a service are gauranteed to run on the same thread and in the order the messages came in. Hence all the tasks for a service are thread safe. A timer can also be created on a chirp thread which asunchronously interrupts based on the duration provided by the user. The timer does not take up any additional threads for operation.
+The API for Chirp enables developers to create services as individual threads. Each service runs in its own thread and is responsible for handling multiple tasks. Tasks are registered to a service using the `registerMsgHandler(..)` function that associates a unique message to a task. This function returns a `ChirpError::Error` code indicating success or failure. Once registered, these tasks are triggered when the service receives corresponding messages through the `postMsg(..)` call.  
 
-Chirp is a C++20 library that provides a lightweight, thread-safe message-passing framework for building concurrent services. The framework enables developers to create services that communicate through asynchronous message passing, with support for type-safe message handlers and flexible argument passing.
+Developers must ensure that the order and data types of parameters remain consistent between the handler passed to`registerMsgHandler(..)` and `postMsg(..)` calls. If there is a mismatch, the helper methods will return `INVALID_ARGUMENTS` at run time and a message will be provided in the debug log.  Internally, each service manages an event queue to handle and dispatch messages to the appropriate task handlers. The tasks registered for a service are gauranteed to run on the same thread and in the order the messages came in. Hence all the tasks for a service are thread safe. 
+
+Calls can be made to the chirp service ***synchronously too***. This allows the caller to block till the handler for the message is processed by the service.  The Chirp Servce that must process the synchronous call must process all the messages in the queue that is ahead of the call and then process the synchronous call. Till then the caller will be blocked. Hence this feature must be used cautiosly. 
+
+A timer can also be created on a chirp thread which asynchronously interrupts based on the duration provided by the user. ***The timer does not take up any additional threads for operation***. A WatchDog capability has also been provided that can be used to check the health of the threads and provide alerts if the thread has been stuck for a while. 
+
+Chirp is a C++20 library that provides a lightweight, thread-safe message-passing framework for building concurrent services. The framework enables developers to create services that communicate through asynchronous or synchronous message passing, with support for type-safe message handlers and flexible argument passing.
 
 ### Key Features
-- **Asynchronous Message Passing**: Services communicate through typed messages that are fast.
+- **Message Passing**: Services communicate through typed messages that are fast.
 - **Thread Safety**: Built-in synchronization mechanisms for concurrent access
 - **Type Safety**: Template-based message handlers with compile-time type checking
 - **Flexible Argument Passing**: Support for various C++ data types including containers. Parameters can be passed directly to the API's instead of containerising them. 
@@ -40,6 +49,7 @@ Chirp is a C++20 library that provides a lightweight, thread-safe message-passin
 - **Factory Pattern**: Centralized service creation and lifecycle management through the ChirpFactory.
 - **External Dependancies**: The only external library that chirp depends upon are the standard libraries. 
 - **Timer Support:** Services can be asynchronously interrupted on a regular basis, with timers. 
+- **Watchdog Support**: Services can be monitored by a watchdog and the caller can be notified if a services is not responsive.
 
 ## System Architecture
 
@@ -84,7 +94,7 @@ The system follows a layered architecture with clear separation of concerns:
 
 ## Threading Model
 
-The main thread instantiates a `ChirpService`, which in turn spawns a dedicated service thread equipped with its own message queue. The main thread registers a message handler with this service. Any thread with access to the `ChirpService` instance can post messages via the `postMsg(..)` method. It is essential to maintain the correct parameter order and data types when posting messages; mismatches will trigger messages in the logs. The system supports both asynchronous and synchronous message posting. Asynchronous messages are posted with `postMsg` and processed in FIFO order, while synchronous messages posted with `syncMsg` block the caller until the handler completes.
+The main thread instantiates a `ChirpService`, which in turn spawns a dedicated service thread equipped with its own message queue. The main thread registers a message handler with this service. Any thread with access to the `ChirpService` instance can post messages via the `postMsg(..)` method. It is essential to maintain the correct parameter order and data types when posting messages; mismatches will trigger messages in the logs. The system supports both asynchronous and synchronous message posting. Asynchronous messages are posted with `postMsg` and processed in FIFO order, while synchronous messages posted with `syncMsg` block the caller until the handler completes. This would mean that the service that must handle the synchronous call must process all teh messages in the queue ahead of it before it processes the synchronous call.
 
 ### Thread State Management
 
@@ -93,7 +103,7 @@ The ChirpThread maintains a state machine to ensure proper message handling:
 - **NOT_STARTED**: Initial state, no messages can be posted
 - **STARTED**: Thread has been created and started, messages can be posted
 - **RUNNING**: Thread is actively processing messages, messages can be posted
-- **STOPPED**: Thread has been stopped, no messages can be posted
+- **STOPPED**: Thread has been stopped, no messages can be posted. No messages shall be processed.
 
 Messages can only be enqueued when the thread is in STARTED or RUNNING state. Attempting to post messages in other states will return `ChirpError::INVALID_SERVICE_STATE`.
 
@@ -157,16 +167,12 @@ private:
 // Usage
 ServiceHandlers handlers;
 ChirpError::Error error = service.registerMsgHandler("AsyncMessage", &handlers, &ServiceHandlers::asyncHandler);
-if (error != ChirpError::SUCCESS) {
-    std::cout << "Failed to register Async handler: " << ChirpError::errorToString(error) << std::endl;
-    return;
-}
-
+// Check error
+..
+    
 error = service.registerMsgHandler("SyncMessage", &handlers, &ServiceHandlers::syncHandler);
-if (error != ChirpError::SUCCESS) {
-    std::cout << "Failed to register SyncMessage handler: " << ChirpError::errorToString(error) << std::endl;
-    return;
-}
+// Check error
+..
 ```
 
 ### Message Structure
@@ -230,51 +236,27 @@ if (error != ChirpError::SUCCESS) {
 
 ### Service Creation and Management
 ```cpp
-// Direct service creation with error handling
-ChirpError::Error error;
-Chirp service("MyService", error);
-if (error != ChirpError::SUCCESS) {
-    // Handle creation failure
-    std::cout << "Service creation failed: " << ChirpError::errorToString(error);
-}
-
 // Factory-based service creation with error handling
-auto& factory = ChirpFactory::getInstance();
+auto& factory = IChirpFactory::getInstance();
 Chirp* service = nullptr;
 ChirpError::Error error = factory.createService("ServiceCreatedByFactory", &service);
-if (error != ChirpError::SUCCESS) {
-    // Handle creation failure
-    std::cout << "Service creation failed: " << ChirpError::errorToString(error);
-}
-
+// Check error
+..
+    
 // Create handler instance and register message handlers
 MessageHandlers handlers;
 ChirpError::Error error = service.registerMsgHandler("Message", &handlers, &MessageHandlers::handlerMethod);
-if (error != ChirpError::SUCCESS) {
-    std::cout << "Failed to register Message handler: " << ChirpError::errorToString(error) << std::endl;
-    return;
-}
-
+// Check error
+--
+    
 // Start service
 service.start();
 
 // Post asynchronous messages with error handling
 ChirpError::Error error = service.postMsg("Message", arg1, arg2, arg3);
-if (error != ChirpError::SUCCESS) {
-    std::cout << "Failed to post message: " << ChirpError::errorToString(error);
-    // Handle the error appropriately
-}
-
-// Post synchronous messages and wait for completion with error handling
-ChirpError::Error error = service.syncMsg("Message", arg1, arg2, arg3);
-if (error != ChirpError::SUCCESS) {
-    std::cout << "Failed to sync message: " << ChirpError::errorToString(error);
-    // Handle the error appropriately
-}
-
-// Shutdown service
-service.shutdown();
-
+// Check error
+..
+    
 // Factory-based service management
 factory.destroyService("MyService");
 factory.shutdownAllServices();
@@ -301,10 +283,7 @@ MessageHandlers handlers;
 
 // Registration using object instance and member method pointer
 ChirpError::Error error = service.registerMsgHandler("MessageType", &handlers, &MessageHandlers::handler);
-if (error != ChirpError::SUCCESS) {
-    std::cout << "Failed to register MessageType handler: " << ChirpError::errorToString(error) << std::endl;
-    return;
-}
+// Check for error
 ```
 
 **Note**: The interface only supports member function handlers bound to object instances. This provides better encapsulation and allows handlers to access instance state and data.
@@ -314,24 +293,6 @@ if (error != ChirpError::SUCCESS) {
 - **Standard Containers**: vector, map, set, list, deque
 - **Pointers and References**: int*, int&, etc.
 - **Custom Types**: Any type with proper stream operators
-
-## Build System
-
-### CMake Configuration
-- **Minimum Version**: CMake 3.10
-- **C++ Standard**: C++20
-- **Project Structure**: Modular with separate src, tests, and example directories
-
-### Directory Structure
-```
-nice-services/
-├── CMakeLists.txt          # Root build configuration
-├── inc/                    # Public header files
-├── src/                    # Implementation files
-├── tests/                  # Test files
-├── example/                # Usage examples
-└── docs/                   # Documentation
-```
 
 ## Factory Pattern
 
@@ -386,10 +347,7 @@ auto service2 = factory.createService("NetworkService");
 // Create handler instances and register handlers
 LogHandlers logHandlers;
 ChirpError::Error error = service1->registerMsgHandler("Log", &logHandlers, &LogHandlers::logHandler);
-if (error != ChirpError::SUCCESS) {
-    std::cout << "Failed to register Log handler: " << ChirpError::errorToString(error) << std::endl;
-    return;
-}
+// Check error
 service1->start();
 
 // Retrieve existing services
@@ -403,28 +361,6 @@ factory.destroyService("NetworkService");
 
 // Shutdown all services
 factory.shutdownAllServices();
-```
-
-### Interface-Based Design
-
-The factory system supports interface-based programming, allowing for different factory implementations:
-
-```cpp
-// Using the interface (polymorphic)
-IChirpFactory* factory_interface = &ChirpFactory::getInstance();
-auto service = factory_interface->createService("MyService");
-
-// Dependency injection example
-class ServiceManager {
-private:
-    IChirpFactory* _factory;
-public:
-    ServiceManager(IChirpFactory* factory) : _factory(factory) {}
-    void createAndManageServices() {
-        auto service = _factory->createService("ManagedService");
-        // ... service management logic
-    }
-};
 ```
 
 ## Timer System
@@ -521,23 +457,9 @@ The timer system accounts for scheduling delays and timing precision:
 - **Reason**: Accounts for thread scheduling delays and microsecond-level timing variations
 - **Result**: Timers fire consistently at their target intervals
 
-### Multiple Timer Support
+### Design Considerations
 
-The system efficiently handles multiple timers with different intervals:
-
-```cpp
-// Example: Fast timer (100ms) and slow timer (1000ms)
-ChirpTimer fastTimer("FastTick", std::chrono::milliseconds(100));
-ChirpTimer slowTimer("SlowTick", std::chrono::milliseconds(1000));
-
-service.addChirpTimer(&fastTimer);
-service.addChirpTimer(&slowTimer);
-```
-
-**Key Design Decision**: Only timers that fire are rescheduled. This ensures:
-- Fast timer firing doesn't affect slow timer schedule
-- Each timer maintains independent, accurate intervals
-- No timer drift over time
+The timer handlers are running on the same Chirp service thread as regular handlers. So if tasks take up longer execution times as compared to the timer duration then the timer accuracy shall be affected.
 
 ### Timer Usage Pattern
 
@@ -570,27 +492,12 @@ timer.start();
 // Add timer to service (auto-schedules)
 service.addChirpTimer(&timer);
 
-// Timer will now fire every 1000ms
-// Handler executes in service thread context
+// Timer will now fire every 1000ms. Handler executes in service thread context
 
 // Stop and remove timer
 timer.stop();
 service.removeChirpTimer(&timer);
 ```
-
-### Thread Safety and Synchronization
-
-The timer system maintains thread safety through careful mutex usage:
-
-1. **_task_exec_mtx**: Protects handler execution
-   - Locked during timer handler calls
-   - `st_thread` updated before unlock
-   
-2. **_empty_mtx**: Controls message loop waiting
-   - Used for timed wait with `try_lock_for()`
-   - Unlocked when timer added to wake loop
-
-3. **Handler Order**: Both `fireTimerHandlers()` and `fireRegularHandlers()` take `st_thread&` as parameter and update it before unlocking, ensuring consistent shutdown behavior.
 
 ### Timer Limitations and Considerations
 
@@ -599,6 +506,190 @@ The timer system maintains thread safety through careful mutex usage:
 - **Timer Accuracy**: Affected by system load and handler execution time
 - **Memory**: O(n) space for n active timers
 - **Scheduling Complexity**: O(n) to find next timer after reschedule
+
+## Watchdog System
+
+The ChirpWatchdog system provides service health monitoring and unresponsiveness detection for Chirp services. It monitors services by tracking periodic "pet" signals and alerts when services fail to respond within expected timeframes.
+
+### Watchdog Architecture
+
+The watchdog system consists of three main components:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Watchdog Layer                           │
+│  ┌────────────────────────────────────────────────────────┐ │
+│  │              ChirpWatchDog                             │ │
+│  │  • configure(factory, petDuration)                     │ │
+│  │  • start() / stop()                                    │ │
+│  │  • getChirpService()                                   │ │
+│  └────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+                              │
+┌─────────────────────────────────────────────────────────────┐
+│                    Pet Timer Layer                          │
+│  ┌────────────────────────────────────────────────────────┐ │
+│  │  Per-Service Pet Timers (ChirpTimer)                   │ │
+│  │  • _PetTimer_ServiceName (message)                     │ │
+│  │  • petDuration (interval)                              │ │
+│  │  • onPetTimerFired(serviceName)                        │ │
+│  └────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+                              │
+┌─────────────────────────────────────────────────────────────┐
+│                    Monitor Timer Layer                      │
+│  ┌────────────────────────────────────────────────────────┐ │
+│  │  Monitor Timer (ChirpTimer)                            │ │
+│  │  • monitorTimerElapsed (message)                       │ │
+│  │  • 2 × petDuration (interval)                          │ │
+│  │  • onMonitorTick(timerMessage)                         │ │
+│  └────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+                              │
+┌─────────────────────────────────────────────────────────────┐
+│                    Monitored Services                       │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌──────────────┐ │
+│  │   Service 1     │  │   Service 2     │  │   Service N  │ │
+│  │  (monitored)    │  │  (monitored)    │  │  (monitored) │ │
+│  └─────────────────┘  └─────────────────┘  └──────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Watchdog Design Principles
+
+1. **Timer-Based Monitoring**: Uses ChirpTimer infrastructure - no additional threads
+2. **Pet Signal Pattern**: Services "pet" the watchdog when their message queue becomes idle
+3. **Threshold Detection**: Monitors detect missed pets when time exceeds 2 × petDuration
+4. **Alert Mechanism**: Posts `MissedPetMessage` to watchdog's internal service for handling
+
+### Watchdog Operation Flow
+
+#### 1. Configuration Phase
+
+```cpp
+// Create watchdog
+IChirpWatchDog* watchdog = IChirpWatchDog::createWatchdog("Watchdog");
+
+// Configure with factory and pet duration
+watchdog->configure(factory, std::chrono::milliseconds(1000));
+```
+
+#### 2. Starting the dog
+
+```cpp
+// Register alert handler
+WatchdogHandler handler;
+watchdog->getChirpService()->registerMsgHandler(IChirpWatchDog::MissedPetMessage, 
+                                                &handler, 
+                                                &WatchdogHandler::onMissedPet);
+
+// Start watchdog
+watchdog->start();
+```
+
+#### 3. Runtime Monitoring
+
+**Pet Timer Firing (when service is idle):**
+
+The handling of the pet timer is transparently done by the watchdog.
+
+```
+Service Queue Idle → Pet Timer Fires → onPetTimerFired() called
+→ Records current time in _lastPetTime[serviceName]
+```
+
+**Monitor Timer Firing (every 2 × petDuration):**
+
+The monitor timer handler wakes up at the duration equivalent to twice the duration and checks  to see if the service has missed its pet. If it has then a message is sent to the registered handler for `MissedPetMessage`.
+
+```
+Monitor Timer Fires → onMonitorTick() called
+→ For each monitored service:
+    - Check time since last pet
+    - If > 2.1 × petDuration:
+        → Post MissedPetMessage to watchdog service
+        → Alert handler invoked
+```
+
+#### 4. Shutdown Phase
+
+```cpp
+watchdog->stop();
+delete watchdog;
+```
+
+**What happens:**
+
+- Stops all pet timers
+- Removes pet timers from monitored services
+- Stops monitor timer
+- Removes monitor timer from watchdog service
+- Shuts down watchdog's internal service
+- Cleans up all timer resources
+
+### Pet Timer Mechanism
+
+Pet timers only fire when a service's message queue is idle:
+
+**Key Insight:** Pet timers measure service responsiveness, not just uptime. A busy service won't pet, triggering alerts.
+
+### Missed Pet Detection Algorithm
+
+**Threshold Calculation:**
+- Pet interval: `petDuration`
+- Monitor interval: `2 × petDuration`
+- Alert threshold: `2.1 × petDuration` (10% tolerance)
+
+### Watchdog Characteristics
+
+**Advantages:**
+
+- **No Additional Threads**: Uses existing ChirpTimer infrastructure
+- **Idle Detection**: Detects busy/hung services, not just crashes
+- **Configurable**: Pet duration adjustable per deployment
+- **Scalable**: Monitors any number of services
+- **Thread-Safe**: All operations mutex-protected
+
+**Limitations:**
+
+- **Resolution**: Limited by pet duration (typically 100ms-10s)
+- **False Positives**: Legitimately busy services may trigger alerts
+- **Overhead**: One timer per monitored service + one monitor timer
+- **Latency**: Detection delay of up to 2 × petDuration
+
+**Best Practices:**
+
+- Set `petDuration` > longest expected handler execution time
+- Use 2-3× margin for threshold to avoid false positives
+- Monitor critical services only to minimize overhead
+- Implement exponential backoff for repeated alerts
+- Consider service priority when setting pet durations
+
+### Watchdog Integration with Factory
+
+The watchdog integrates with ChirpFactory to discover and monitor services:
+
+This design allows dynamic service discovery and monitoring without hardcoding service names.
+
+## Build System
+
+### CMake Configuration
+
+- **Minimum Version**: CMake 3.10
+- **C++ Standard**: C++20
+- **Project Structure**: Modular with separate src, tests, and example directories
+
+### Directory Structure
+
+```
+nice-services/
+├── CMakeLists.txt          # Root build configuration
+├── inc/                    # Public header files
+├── src/                    # Implementation files
+├── tests/                  # Test files
+├── example/                # Usage examples
+└── docs/                   # Documentation
+```
 
 ## Testing Strategy
 
