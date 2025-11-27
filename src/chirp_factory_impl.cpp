@@ -3,7 +3,7 @@
  * @brief Implementation of ChirpFactory concrete class
  * @author Chirp Team
  * @date 2025
- * @version 1.0
+ * @version 2.0
  */
 
 #include "chirp_factory.h"
@@ -12,7 +12,7 @@
 #include "chirp_logger.h"
 
 // Static member initialization
-const std::string ChirpFactory::_version = "1.0";
+const std::string ChirpFactory::_version = "2.0";
 
 // Interface-level singleton accessor
 IChirpFactory& IChirpFactory::getInstance() {

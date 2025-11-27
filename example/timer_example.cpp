@@ -3,7 +3,7 @@
  * @brief Simple example demonstrating how to use IChirpTimer with Chirp services
  * @author Chirp Team
  * @date 2025
- * @version 1.0
+ * @version 2.0
  * 
  * This example shows how to:
  * 1. Create an IChirpTimer using the factory method

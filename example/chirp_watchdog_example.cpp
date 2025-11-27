@@ -3,7 +3,7 @@
  * @brief Example demonstrating ChirpWatchDog monitoring unresponsive services
  * @author Chirp Team
  * @date 2025
- * @version 1.0
+ * @version 2.0
  * 
  * This example shows how to:
  * 1. Create multiple Chirp services with handlers that simulate work

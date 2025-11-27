@@ -3,7 +3,7 @@
  * @brief Implementation of ChirpTimer concrete class
  * @author Chirp Team
  * @date 2025
- * @version 1.0
+ * @version 2.0
  */
 
 #include "chirp_timer.h"

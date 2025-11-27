@@ -3,7 +3,7 @@
  * @brief Implementation of TimerManager class
  * @author Chirp Team
  * @date 2025
- * @version 1.0
+ * @version 2.0
  */
 
 #include "timer_mgr.h"
