@@ -33,7 +33,7 @@ ChirpWatchDog::~ChirpWatchDog() {
     }
     
     // Clean up pet timers
-    for (auto& kv : _servicePetTimers) {
+    for (const auto& kv : _servicePetTimers) {
         if (kv.second) {
             delete kv.second;
         }
@@ -147,9 +147,9 @@ void ChirpWatchDog::installPetTimers() {
                 // Timer will be added to service in start() after it's started
                 
                 // Register a handler on the watched service for this timer
-                ChirpError::Error handlerErr = svc->registerMsgHandler(timerMsgName, 
-                                                                       this, 
-                                                                       &ChirpWatchDog::onPetTimerFired);
+                (void)svc->registerMsgHandler(timerMsgName, 
+                                             this, 
+                                             &ChirpWatchDog::onPetTimerFired);
             }
         }
     }
@@ -199,14 +199,14 @@ ChirpError::Error ChirpWatchDog::onPetTimerFired(const std::string& timerMsgName
 
 ChirpError::Error ChirpWatchDog::onMonitorTick(const std::string& timerMessage) {
     
+    if (!_factory) {
+        return ChirpError::INVALID_SERVICE_STATE;
+    }
+    
     auto now = std::chrono::steady_clock::now();
 
     // Get all monitored services and check for missed pets
     std::vector<std::string> serviceNames = _factory->listServiceNames();
-       
-    if (!_factory) {
-        return ChirpError::INVALID_SERVICE_STATE;
-    }
     
     std::lock_guard<std::mutex> lock(_petMutex);
         
@@ -222,7 +222,7 @@ ChirpError::Error ChirpWatchDog::onMonitorTick(const std::string& timerMessage) 
                 auto threshold = 2.1 * _petDuration;  // Threshold is 2 * pet duration
                     
                 if (timeSinceLastPet > threshold) {
-                    ChirpError::Error postError = _chirpService->postMsg(IChirpWatchDog::MissedPetMessage, serviceName);
+                    (void)_chirpService->postMsg(IChirpWatchDog::MissedPetMessage, serviceName);
                 } 
             }
         }

@@ -29,6 +29,8 @@ ChirpTimer::ChirpTimer(std::string messageToDeliver, const std::chrono::millisec
 
 ChirpTimer::~ChirpTimer() {
     // Ensure timer is stopped before destruction
+    // Note: Calling virtual stop() in destructor is safe here since ChirpTimer
+    // is the final implementation and stop() is not overridden further
     stop();
 }
 
@@ -58,11 +60,10 @@ ChirpError::Error ChirpTimer::configure( std::string messageToDeliver,
 
 ChirpError::Error ChirpTimer::start() {
 
-    ChirpError::Error result = ChirpError::SUCCESS;
     std::lock_guard<std::mutex> lock(_configMutex);
     
     // Validate configuration
-    result = validateConfiguration();
+    ChirpError::Error result = validateConfiguration();
     
     // Check if timer is already running
     if (result == ChirpError::SUCCESS) {
