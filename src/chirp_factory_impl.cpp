@@ -3,22 +3,29 @@
  * @brief Implementation of ChirpFactory concrete class
  * @author Chirp Team
  * @date 2025
- * @version 1.0
+ * @version 2.0
  */
 
 #include "chirp_factory.h"
-#include "chirp.h"
+#include "ichirp_factory.h"
+#include "ichirp.h"
 #include "chirp_logger.h"
 
 // Static member initialization
-const std::string ChirpFactory::_version = "1.0";
+const std::string ChirpFactory::_version = "2.0";
 
+// Interface-level singleton accessor
+IChirpFactory& IChirpFactory::getInstance() {
+    return ChirpFactory::getInstance();
+}
+
+// Concrete singleton accessor
 ChirpFactory& ChirpFactory::getInstance() {
     static ChirpFactory instance;
     return instance;
 }
 
-ChirpError::Error ChirpFactory::createService(const std::string& service_name, Chirp** service) {
+ChirpError::Error ChirpFactory::createService(const std::string& service_name, IChirp** service) {
     std::lock_guard<std::mutex> lock(_mutex);
     
     // Initialize the output parameter
@@ -33,7 +40,7 @@ ChirpError::Error ChirpFactory::createService(const std::string& service_name, C
     
     // Create new service
     ChirpError::Error error = ChirpError::SUCCESS;
-    auto newService = new (std::nothrow) Chirp(service_name, error);
+    auto newService = new (std::nothrow) IChirp(service_name, error);
     if (!newService) {
         ChirpLogger::instance("ChirpFactory") << "Failed to allocate memory for service '" << service_name << "'" << std::endl;
         return ChirpError::RESOURCE_ALLOCATION_FAILED;
@@ -46,7 +53,7 @@ ChirpError::Error ChirpFactory::createService(const std::string& service_name, C
     }
     
     // Store the service in our map
-    _services[service_name] = std::shared_ptr<Chirp>(newService);
+    _services[service_name] = std::shared_ptr<IChirp>(newService);
     
     // Set the output parameter to point to the created service
     *service = newService;
@@ -55,7 +62,7 @@ ChirpError::Error ChirpFactory::createService(const std::string& service_name, C
     return ChirpError::SUCCESS;
 }
 
-Chirp* ChirpFactory::getService(const std::string& service_name) {
+IChirp* ChirpFactory::getService(const std::string& service_name) {
     std::lock_guard<std::mutex> lock(_mutex);
     
     auto it = _services.find(service_name);
@@ -86,6 +93,16 @@ bool ChirpFactory::destroyService(const std::string& service_name) {
 size_t ChirpFactory::getServiceCount() const {
     std::lock_guard<std::mutex> lock(_mutex);
     return _services.size();
+}
+
+std::vector<std::string> ChirpFactory::listServiceNames() const {
+    std::lock_guard<std::mutex> lock(_mutex);
+    std::vector<std::string> names;
+    names.reserve(_services.size());
+    for (const auto& kv : _services) {
+        names.push_back(kv.first);
+    }
+    return names;
 }
 
 void ChirpFactory::shutdownAllServices() {

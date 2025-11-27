@@ -2,7 +2,7 @@
 #include <thread>
 #include <chrono>
 
-#include "chirp.h"
+#include "ichirp.h"
 #include "chirp_error.h"
 
 class SimpleHandlers {
@@ -24,11 +24,11 @@ public:
 
 int main() {
     std::cout << "=== Simple Chirp Example ===" << std::endl;
-    std::cout << "Chirp API version: " << Chirp::getVersion() << std::endl;
+    std::cout << "Chirp API version: " << IChirp::getVersion() << std::endl;
     
     // Create a Chirp service
     ChirpError::Error error;
-    Chirp service("DemoService", error);
+    IChirp service("DemoService", error);
     if (error != ChirpError::SUCCESS) {
         std::cout << "Failed to create service: " << ChirpError::errorToString(error) << std::endl;
         return 1;

@@ -2,8 +2,7 @@
 #include <thread>
 #include <chrono>
 #include "ichirp_factory.h"
-#include "chirp_factory.h"
-#include "chirp.h"
+#include "ichirp.h"
 #include "chirp_error.h"
 
 class FactoryServiceHandlers {
@@ -24,31 +23,31 @@ public:
 int main() {
     std::cout << "=== ChirpFactory Example ===" << std::endl;
     
-    // Get the singleton instance of ChirpFactory
-    auto& factory = ChirpFactory::getInstance();
+    // Get the singleton instance via interface
+    IChirpFactory& factory = IChirpFactory::getInstance();
     std::cout << "ChirpFactory version: " << factory.getVersion() << std::endl;
     
-    // Demonstrate interface usage - we can use the interface pointer
+    // Demonstrate interface pointer usage
     IChirpFactory* factory_interface = &factory;
     std::cout << "Interface version: " << factory_interface->getVersion() << std::endl;
     
     // Create multiple services using the factory
     ChirpError::Error error;
-    Chirp* service1 = nullptr;
+    IChirp* service1 = nullptr;
     error = factory.createService("LoggerService", &service1);
     if (error != ChirpError::SUCCESS) {
         std::cout << "Failed to create LoggerService: " << ChirpError::errorToString(error) << std::endl;
         return 1;
     }
     
-    Chirp* service2 = nullptr;
+    IChirp* service2 = nullptr;
     error = factory.createService("NetworkService", &service2);
     if (error != ChirpError::SUCCESS) {
         std::cout << "Failed to create NetworkService: " << ChirpError::errorToString(error) << std::endl;
         return 1;
     }
     
-    Chirp* service3 = nullptr;
+    IChirp* service3 = nullptr;
     error = factory.createService("DatabaseService", &service3);
     if (error != ChirpError::SUCCESS) {
         std::cout << "Failed to create DatabaseService: " << ChirpError::errorToString(error) << std::endl;
@@ -56,7 +55,7 @@ int main() {
     }
     
     // Demonstrate using the interface for service creation
-    Chirp* service4 = nullptr;
+    IChirp* service4 = nullptr;
     error = factory_interface->createService("InterfaceService", &service4);
     if (error != ChirpError::SUCCESS) {
         std::cout << "Failed to create InterfaceService: " << ChirpError::errorToString(error) << std::endl;
@@ -161,7 +160,7 @@ int main() {
     }
     
     // Try to create a service with the same name (should return error)
-    Chirp* duplicate_service = nullptr;
+    IChirp* duplicate_service = nullptr;
     error = factory.createService("LoggerService", &duplicate_service);
     if (error == ChirpError::SERVICE_ALREADY_EXISTS) {
         std::cout << "Factory correctly returned SERVICE_ALREADY_EXISTS error for duplicate service" << std::endl;

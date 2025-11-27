@@ -3,7 +3,7 @@
  * @brief Error handling types and enums for the Chirp framework
  * @author Chirp Team
  * @date 2025
- * @version 1.0
+ * @version 2.0
  */
 
 #pragma once

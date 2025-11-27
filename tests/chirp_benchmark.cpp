@@ -1,4 +1,4 @@
-#include "chirp.h"
+#include "ichirp.h"
 #include "chirp_factory.h"
 #include "chirp_logger.h"
 #include "message.h"
@@ -67,11 +67,11 @@ void benchmarkServiceCreation() {
     double time2 = suite.measureTime([]() {
         ChirpError::Error error;
         Chirp* service = nullptr;
-        error = ChirpFactory::getInstance().createService("FactoryService", &service);
+        error = IChirpFactory::getInstance().createService("FactoryService", &service);
         if (error != ChirpError::SUCCESS) {
             std::cerr << "Factory service creation failed\n";
         }
-        ChirpFactory::getInstance().destroyService("FactoryService");
+        IChirpFactory::getInstance().destroyService("FactoryService");
     }, 1000);
     suite.addResult("Factory Service Creation", time2, "1000 iterations");
     
@@ -280,21 +280,21 @@ void benchmarkFactoryOperations() {
     
     // Benchmark 1: Factory singleton access
     double time1 = suite.measureTime([]() {
-        ChirpFactory& factory = ChirpFactory::getInstance();
+        IChirpFactory& factory = IChirpFactory::getInstance();
         std::string version = factory.getVersion();
     }, 100000);
     suite.addResult("Factory Singleton Access", time1, "100000 iterations");
     
     // Benchmark 2: Service count operations
     double time2 = suite.measureTime([]() {
-        ChirpFactory& factory = ChirpFactory::getInstance();
+        IChirpFactory& factory = IChirpFactory::getInstance();
         int count = factory.getServiceCount();
     }, 100000);
     suite.addResult("Service Count Operations", time2, "100000 iterations");
     
     // Benchmark 3: Create and destroy cycle
     double time3 = suite.measureTime([]() {
-        ChirpFactory& factory = ChirpFactory::getInstance();
+        IChirpFactory& factory = IChirpFactory::getInstance();
         ChirpError::Error error;
         Chirp* service = nullptr;
         error = factory.createService("TempService", &service);

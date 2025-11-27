@@ -3,7 +3,7 @@
  * Concrete factory implementation for creating Chirp services
  * 
  * This file defines the ChirpFactory concrete implementation of the IChirpFactory interface,
- * which provides a singleton factory for creating and managing Chirp service instances.
+ * which provides a singleton factory for creating and managing IChirp service instances.
  * The factory pattern ensures centralized control over service creation and lifecycle management.
  */
 
@@ -23,17 +23,15 @@
  */
 class ChirpFactory : public IChirpFactory {
 public:
-    /*
-     * Get the singleton instance of ChirpFactory
-     * Returns: Reference to the singleton instance
-     */
+    // Singleton accessor
     static ChirpFactory& getInstance();
 
     // Implementation of IChirpFactory interface
-    ChirpError::Error createService(const std::string& service_name, Chirp** service) override;
-    Chirp* getService(const std::string& service_name) override;
+    ChirpError::Error createService(const std::string& service_name, IChirp** service) override;
+    IChirp* getService(const std::string& service_name) override;
     bool destroyService(const std::string& service_name) override;
     size_t getServiceCount() const override;
+    std::vector<std::string> listServiceNames() const override;
     void shutdownAllServices() override;
     const std::string& getVersion() const override;
 
@@ -47,6 +45,6 @@ private:
     ChirpFactory& operator=(ChirpFactory&&) = delete;
 
     static const std::string _version;
-    std::map<std::string, std::shared_ptr<Chirp>> _services;
+    std::map<std::string, std::shared_ptr<IChirp>> _services;
     mutable std::mutex _mutex;
 }; 

@@ -1,11 +1,11 @@
 /**
- * @file chirp.h
+ * @file ichirp.h
  * @brief Main service interface for Chirp framework
  * @author Chirp Team 
  * @date 2025
- * @version 1.0
+ * @version 2.0
  * 
- * This file defines the Chirp class, which provides a high-level interface
+ * This file defines the IChirp class, which provides a high-level interface
  * for creating and managing services with message-passing capabilities.
  * The class uses template metaprogramming to provide type-safe message handling.
  */
@@ -18,6 +18,8 @@
 #include <string>
 #include <iostream>
 #include <sstream>
+#include <utility>
+#include <type_traits>
 #include "chirp_error.h"
 
 
@@ -25,11 +27,12 @@
 // This keeps the spirit of data abstraction, so API consumer shall include only
 // this one public header file.
 class ChirpImpl;
+class IChirpTimer;   
 
 /**
  * @brief Main service class for Chirp framework
  * 
- * Chirp provides a high-level interface for creating services that can
+ * IChirp provides a high-level interface for creating services that can
  * handle typed messages asynchronously. Each service runs in its own thread
  * and processes messages through registered handlers.
  * 
@@ -38,40 +41,40 @@ class ChirpImpl;
  * 
  * @example
  * @code
- * Chirp service("MyService");
+ * IChirp service("MyService");
  * service.registerMsgHandler("TestMessage", myHandler);
  * service.start();
  * service.postMsg("TestMessage", 42, "hello");
  * service.shutdown();
  * @endcode
  */
-class Chirp {
+class IChirp {
 public:
     /**
      * @brief Default constructor
      * @note This constructor is provided for backward compatibility but should not be used
      *       for creating functional services. Use the service_name constructor instead.
      */
-    Chirp() : _impl(nullptr) {}
+    IChirp() : _impl(nullptr) {}
 
     /**
      * @brief Default destructor
      */
-    ~Chirp();
+    ~IChirp();
 
     /**
      * @brief Constructor with service name
      * @param service_name The name of the service for identification and logging
      * @param error Output parameter for error status
      * 
-     * This constructor creates a new Chirp service instance. If any resource allocation
+     * This constructor creates a new IChirp service instance. If any resource allocation
      * fails during construction, the error parameter will be set to the appropriate
      * error code and the service will not be fully initialized.
      * 
      * @note Always check the error parameter after construction to ensure the service
      *       was created successfully before using it.
      */
-    explicit Chirp(const std::string& service_name, ChirpError::Error& error);
+    explicit IChirp(const std::string& service_name, ChirpError::Error& error);
 
     /**
      * @brief Start the service
@@ -135,7 +138,7 @@ public:
             return ChirpError::HANDLER_ALREADY_EXISTS;
         }
 
-        (*functions)[msgName] = std::bind(&Chirp::executeHandler<Obj, Ret, Args...>, 
+        (*functions)[msgName] = std::bind(&IChirp::executeHandler<Obj, Ret, Args...>, 
                                           this, 
                                           object, 
                                           method, std::placeholders::_1);
@@ -178,7 +181,7 @@ public:
             return ChirpError::HANDLER_ALREADY_EXISTS;
         }
 
-        (*functions)[msgName] = std::bind(&Chirp::executeConstHandler<Obj, Ret, Args...>, 
+        (*functions)[msgName] = std::bind(&IChirp::executeConstHandler<Obj, Ret, Args...>, 
                                           this, 
                                           object, 
                                           method, 
@@ -187,10 +190,40 @@ public:
     }
 
     /**
+     * @brief Add a timer to the service
+     * @param timer Pointer to IChirpTimer instance to add
+     * @return ChirpError::Error indicating success or failure
+     * 
+     * Adds the provided timer to the service's timer manager. The timer
+     * will be managed by the service and can fire events based on its configuration.
+     * 
+     * @note The timer must be properly configured before being added
+     * @note This method is thread-safe
+     */
+    ChirpError::Error addChirpTimer(IChirpTimer* timer);
+
+    /**
+     * @brief Remove a timer from the service
+     * @param timer Pointer to IChirpTimer instance to remove
+     * @return ChirpError::Error indicating success or failure
+     * 
+     * Removes the provided timer from the service's timer manager. After removal,
+     * the timer will no longer fire events through this service.
+     * 
+     * @note This method is thread-safe
+     * @note The timer instance is not deleted by this method
+     */
+    ChirpError::Error removeChirpTimer(IChirpTimer* timer);
+
+    /**
      * @brief Get the version of the Chirp API
      * @return The version string (e.g., "1.0")
      */
     static const std::string& getVersion();
+
+    // Watchdog monitoring flag
+    void setWatchDogMonitoring(bool enabled);
+    bool getWatchDogMonitoring() const;
 
 private:
     static const std::string _version;
@@ -276,46 +309,7 @@ private:
     template<typename Obj, typename Ret, typename... Args>
     ChirpError::Error executeHandler(Obj* object, 
                                      Ret(Obj::*method)(Args...), 
-                                     const std::vector<std::any>& args) {
-        ChirpError::Error validateResult = validateArgCount<Args...>(args, 
-                                                                     this->getServiceName());
-        if (validateResult != ChirpError::SUCCESS) {
-  
-            // If we have a validation callback, call it to capture the error
-            if (_validationCallback) {
-                _validationCallback(validateResult);
-            }
-
-            // Also call the async validation callback if it exists
-            if (_asyncValidationCallback) {
-                _asyncValidationCallback(validateResult);
-            }
-
-            return validateResult;
-        }
-
-        std::vector<std::any> slicedArgs(args.begin() + 1, args.end());
-
-        // Inline the helper logic
-        ChirpError::Error result = ChirpError::SUCCESS;
-        try {
-            executeHandlerImpl(object, method, slicedArgs, std::index_sequence_for<Args...>{});
-        } catch (const std::bad_any_cast& e) {
-            result = ChirpError::INVALID_ARGUMENTS;
-
-            // If we have a validation callback, call it to capture the error
-            if (_validationCallback) {
-                _validationCallback(result);
-            }
-
-            // Also call the async validation callback if it exists
-            if (_asyncValidationCallback) {
-                _asyncValidationCallback(result);
-            }
-        }
-
-        return result;
-    }
+                                     const std::vector<std::any>& args);
 
     /**
      * @brief Helper function to execute handler with proper argument unpacking
@@ -331,9 +325,7 @@ private:
     void executeHandlerImpl(Obj* object, 
                             Ret(Obj::*method)(Args...), 
                             const std::vector<std::any>& args, 
-                            std::index_sequence<I...>) {
-        (object->*method)(std::any_cast<Args>(args[I])...);
-    }
+                            std::index_sequence<I...>);
 
     /**
      * @brief Helper function to execute const handler with proper argument unpacking
@@ -349,9 +341,7 @@ private:
     void executeHandlerImpl(Obj* object, 
                             Ret(Obj::*method)(Args...) const, 
                             const std::vector<std::any>& args, 
-                            std::index_sequence<I...>) {
-        (object->*method)(std::any_cast<Args>(args[I])...);
-    }
+                            std::index_sequence<I...>);
 
     /**
      * @brief Execute a const member function handler with proper error handling
@@ -366,45 +356,14 @@ private:
     template<typename Obj, typename Ret, typename... Args>
     ChirpError::Error executeConstHandler(Obj* object, 
                                           Ret(Obj::*method)(Args...) const, 
-                                          const std::vector<std::any>& args) {
-        ChirpError::Error validateResult = validateArgCount<Args...>(args, this->getServiceName());
-        if (validateResult != ChirpError::SUCCESS) {
+                                          const std::vector<std::any>& args);
 
-            // If we have a validation callback, call it to capture the error
-            if (_validationCallback) {
-                _validationCallback(validateResult);
-            }
+    // Validate any_cast ability for each argument type without invoking user handler
+    template<typename... T, size_t... I>
+    bool validateCastsImpl(const std::vector<std::any>& args, std::index_sequence<I...>);
 
-            // Also call the async validation callback if it exists
-            if (_asyncValidationCallback) {
-                _asyncValidationCallback(validateResult);
-            }
-
-            return validateResult;
-        }
-        std::vector<std::any> slicedArgs(args.begin() + 1, args.end());
-
-        // Inline the helper logic
-        ChirpError::Error result = ChirpError::SUCCESS;
-        try {
-            executeHandlerImpl(object, method, slicedArgs, std::index_sequence_for<Args...>{});
-        } catch (const std::bad_any_cast& e) {
-
-            result = ChirpError::INVALID_ARGUMENTS;
-
-            // If we have a validation callback, call it to capture the error
-            if (_validationCallback) {
-                _validationCallback(result);
-            }
-
-            // Also call the async validation callback if it exists
-            if (_asyncValidationCallback) {
-                _asyncValidationCallback(result);
-            }
-        }
-
-        return result;
-    }
+    template<typename... T>
+    bool validateCasts(const std::vector<std::any>& args);
 
     /**
      * @brief Enqueue a message for processing
@@ -446,6 +405,12 @@ private:
 
     // Callback to capture validation errors for async messages
     std::function<void(ChirpError::Error)> _asyncValidationCallback;
+
+    // Thread-local flag to validate only (no user handler invocation)
+    static thread_local bool _validateOnly;
+
+    // Watchdog monitoring state (disabled by default)
+    bool _watchdogMonitoringEnabled = false;
 
     /**
      * @brief Helper to build message and argument vector, then enqueue
@@ -498,18 +463,7 @@ public:
             return ChirpError::INVALID_SERVICE_STATE;
         }
 
-        // For postMsg, we need to validate arguments synchronously
-        // We'll use a different approach: create a temporary validation message
-        // that gets processed immediately to check for validation errors
-
-        ChirpError::Error validationError = ChirpError::SUCCESS;
-
-        // Set up a temporary validation callback
-        _asyncValidationCallback = [&validationError](ChirpError::Error error) {
-            validationError = error;
-        };
-
-        // Create and process a validation message immediately
+        // Build args and validate without invoking user handler
         std::vector<std::any> args;
         args.push_back(first_arg);
         collectArgs(args, remaining_args...);
@@ -521,27 +475,25 @@ public:
         // Check if handler exists
         std::map<std::string, std::function<ChirpError::Error(std::vector<std::any>)>>* functions = nullptr;
         getCbMap(functions);
-
         auto it = functions->find(msgName);
         if (it == functions->end()) {
-            _asyncValidationCallback = nullptr;
             return ChirpError::HANDLER_NOT_FOUND;
         }
 
-        // Process the message immediately to trigger validation
-        ChirpError::Error result = (it->second)(args);
-
-        // Clear the validation callback
+        // Use validate-only path to check argument count/types
+        ChirpError::Error validationError = ChirpError::SUCCESS;
+        _asyncValidationCallback = [&validationError](ChirpError::Error e){ validationError = e; };
+        _validateOnly = true;
+        (void)(it->second)(args);
+        _validateOnly = false;
         _asyncValidationCallback = nullptr;
 
-        // If validation failed, return the error
-        if (result != ChirpError::SUCCESS) {
-            return result;
+        if (validationError != ChirpError::SUCCESS) {
+            return validationError;
         }
 
-        // If validation passed, enqueue the message normally
-        ChirpError::Error error = enqueMsg(msgName, args);
-        return error;
+        // Enqueue for execution on the service thread (single execution)
+        return enqueMsg(msgName, args);
     }
 
     /**
@@ -591,3 +543,6 @@ public:
         return (validationError != ChirpError::SUCCESS) ? validationError : error;
     }
 };
+
+#include "ichirp_detail.hpp"
+

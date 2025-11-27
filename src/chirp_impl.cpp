@@ -1,6 +1,6 @@
 #include <thread>
 
-#include "chirp.h"
+#include "ichirp.h"
 #include "chirp_threads.h"
 #include "chirp_logger.h"
 #include "chirp_impl.h"
@@ -70,5 +70,13 @@ ChirpError::Error ChirpImpl::enqueSyncMsg(std::string& msgName, std::vector<std:
 
 void ChirpImpl::getCbMap(std::map<std::string, std::function<ChirpError::Error(std::vector<std::any>)>>*& funcMap) {
     _nthread->getCbMap(funcMap);
+}
+
+void ChirpImpl::addChirpTimer(ChirpTimer* timer) {
+    _nthread->addChirpTimer(timer);
+}
+
+void ChirpImpl::removeChirpTimer(ChirpTimer* timer) {
+    _nthread->removeChirpTimer(timer);
 }
 

@@ -4,7 +4,7 @@
 #include "message.h"
 
 Message::Message(std::string& message, Message::MessageType mt, std::vector<std::any>& args)
-    : _msg(message), _args(args), _type(mt) {}
+    : _msg(message), _args(args), _type(mt), _sync_done(false) {}
 
 void Message::getMessage(std::string& message) {
     message = _msg;
@@ -19,10 +19,14 @@ void Message::getMessageType(Message::MessageType& type) {
 }
 
 void Message::sync_wait() {
-    _sync_mtx.lock();
-    _sync_mtx.lock();
+    std::unique_lock<std::mutex> lock(_sync_mtx);
+    _sync_cv.wait(lock, [this]{ return _sync_done; });
 }
 
 void Message::sync_notify() {
-    _sync_mtx.unlock();
+    {
+        std::lock_guard<std::mutex> lock(_sync_mtx);
+        _sync_done = true;
+    }
+    _sync_cv.notify_one();
 }

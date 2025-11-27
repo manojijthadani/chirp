@@ -3,7 +3,7 @@
  * @brief Abstract factory interface for creating Chirp services
  * @author Chirp Team
  * @date 2025
- * @version 1.0
+ * @version 2.0
  * 
  * This file defines the IChirpFactory interface for creating and managing Chirp service instances.
  * This interface ensures that different factory implementations can be used
@@ -13,15 +13,16 @@
 #pragma once
 #include <memory>
 #include <string>
+#include <vector>
 #include "chirp_error.h"
 
 // Forward declaration to prevent inclusion of private headers
-class Chirp;
+class IChirp;
 
 /**
  * @brief Abstract factory interface for creating and managing Chirp services
  * 
- * IChirpFactory defines the interface for creating and managing Chirp service instances.
+ * IChirpFactory defines the interface for creating and managing IChirp service instances.
  * This interface ensures that different factory implementations can be used
  * while maintaining the same API contract.
  * 
@@ -36,28 +37,31 @@ class Chirp;
  */
 class IChirpFactory {
 public:
+    // Singleton access via interface
+    static IChirpFactory& getInstance();
+
     /**
      * @brief Virtual destructor for proper cleanup
      */
     virtual ~IChirpFactory() = default;
 
     /**
-     * @brief Create a new Chirp service instance
+     * @brief Create a new IChirp service instance
      * @param service_name The name of the service to create
      * @param service Output parameter for the created service pointer
      * @return ChirpError::Error indicating success or failure
      * 
-     * @note If successful, *service will point to the created Chirp instance
+     * @note If successful, *service will point to the created IChirp instance
      * @note If failed, *service will be set to nullptr
      */
-    virtual ChirpError::Error createService(const std::string& service_name, Chirp** service) = 0;
+    virtual ChirpError::Error createService(const std::string& service_name, IChirp** service) = 0;
 
     /**
      * @brief Get an existing service by name
      * @param service_name The name of the service to retrieve
      * @return Pointer to the service if it exists, nullptr otherwise
      */
-    virtual Chirp* getService(const std::string& service_name) = 0;
+    virtual IChirp* getService(const std::string& service_name) = 0;
 
     /**
      * @brief Destroy a service by name
@@ -71,6 +75,12 @@ public:
      * @return Number of services currently managed by the factory
      */
     virtual size_t getServiceCount() const = 0;
+
+    /**
+     * @brief List names of all active services
+     * @return Vector of service names
+     */
+    virtual std::vector<std::string> listServiceNames() const = 0;
 
     /**
      * @brief Shutdown all services managed by the factory

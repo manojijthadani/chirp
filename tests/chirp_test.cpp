@@ -4,7 +4,7 @@
  * Framework: Custom Simple Test Framework
  */
 
-#include "chirp.h"
+#include "ichirp.h"
 #include "chirp_error.h"
 #include "message.h"
 #include "chirp_logger.h"
@@ -22,6 +22,10 @@
 #include <filesystem>
 #include <chrono>
 #include <thread>
+#include <limits>
+
+// Temporary alias to maintain backward-compatible test code
+using Chirp = IChirp;
 
 // Simple test framework without external dependencies
 class SimpleTestFramework {
